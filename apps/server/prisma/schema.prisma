@@ -1,0 +1,108 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Organization {
+  id        Int       @id @default(autoincrement())
+  name      String
+  parentId  Int?
+  parent    Organization? @relation("OrgTree", fields: [parentId], references: [id])
+  children  Organization[] @relation("OrgTree")
+  createdAt DateTime  @default(now())
+
+  openedMaterials OpenedMaterial[]
+  printLogs       PrintLog[]
+  operationLogs   OperationLog[]
+}
+
+model ConfigItem {
+  id        Int      @id @default(autoincrement())
+  kind      String
+  code      String
+  name      String
+  sort      Int      @default(1)
+  extra     String?
+  status    String   @default("enabled")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([kind, code])
+}
+
+model Material {
+  id                Int      @id @default(autoincrement())
+  code              String   @unique
+  name              String
+  category          String
+  type              String
+  unit              String
+  shelfLifeValue    Int
+  shelfLifeUnit     String
+  openedLifeValue   Int
+  openedLifeUnit    String
+  status            String   @default("enabled")
+  remark            String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  openedMaterials OpenedMaterial[]
+  printLogs       PrintLog[]
+  operationLogs   OperationLog[]
+}
+
+model OpenedMaterial {
+  id             Int      @id @default(autoincrement())
+  materialId     Int
+  organizationId Int
+  openedAt       DateTime
+  expiresAt      DateTime
+  status         String   @default("normal")
+  quantity       Int      @default(1)
+  operator       String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  material     Material     @relation(fields: [materialId], references: [id])
+  organization Organization @relation(fields: [organizationId], references: [id])
+  printLogs    PrintLog[]
+  operationLogs OperationLog[]
+}
+
+model PrintLog {
+  id               Int      @id @default(autoincrement())
+  materialId       Int
+  openedMaterialId Int?
+  organizationId   Int
+  printType        String
+  printCount       Int      @default(1)
+  openedAt         DateTime
+  expiresAt        DateTime
+  operator         String
+  createdAt        DateTime @default(now())
+
+  material       Material        @relation(fields: [materialId], references: [id])
+  openedMaterial OpenedMaterial? @relation(fields: [openedMaterialId], references: [id])
+  organization   Organization   @relation(fields: [organizationId], references: [id])
+}
+
+model OperationLog {
+  id               Int      @id @default(autoincrement())
+  materialId       Int
+  openedMaterialId Int
+  organizationId   Int
+  operationType    String
+  quantity         Int
+  unit             String
+  remark           String?
+  operator         String
+  createdAt        DateTime @default(now())
+
+  material       Material       @relation(fields: [materialId], references: [id])
+  openedMaterial OpenedMaterial @relation(fields: [openedMaterialId], references: [id])
+  organization   Organization  @relation(fields: [organizationId], references: [id])
+}

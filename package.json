@@ -1,0 +1,35 @@
+{
+  "name": "expiry-label-system",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev:server",
+    "dev:server": "npm --workspace apps/server run dev",
+    "dev:admin": "npm --workspace apps/admin-web run dev",
+    "dev:mobile": "npm --workspace apps/mobile-web run dev",
+    "build": "npm run build --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "test:smoke": "playwright test",
+    "test:smoke:headed": "playwright test --headed",
+    "prisma:generate": "npm --workspace apps/server run prisma:generate",
+    "prisma:migrate": "npm --workspace apps/server run prisma:migrate",
+    "prisma:push": "npm --workspace apps/server exec prisma db push",
+    "seed": "npm --workspace apps/server run seed"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.61.1"
+  },
+  "allowScripts": {
+    "@prisma/client@5.22.0": true,
+    "@prisma/engines@5.22.0": true,
+    "esbuild@0.28.1": true,
+    "esbuild@0.25.12": true,
+    "fsevents@2.3.3": true,
+    "fsevents@2.3.2": true,
+    "prisma@5.22.0": true
+  }
+}
