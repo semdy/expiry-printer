@@ -1,6 +1,5 @@
 package com.expirylabel.mobile;
 
-import android.Manifest;
 import android.annotation.SuppressLint;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
@@ -19,15 +18,8 @@ import android.os.Handler;
 import android.os.Looper;
 import android.util.Base64;
 
-import com.getcapacitor.JSArray;
-import com.getcapacitor.JSObject;
-import com.getcapacitor.PermissionState;
-import com.getcapacitor.Plugin;
-import com.getcapacitor.PluginCall;
-import com.getcapacitor.PluginMethod;
-import com.getcapacitor.annotation.CapacitorPlugin;
-import com.getcapacitor.annotation.Permission;
-import com.getcapacitor.annotation.PermissionCallback;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -37,22 +29,18 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 
-@CapacitorPlugin(
-    name = "BluetoothPrinter",
-    permissions = {
-        @Permission(alias = "bluetoothModern", strings = { Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT }),
-        @Permission(alias = "bluetoothLegacy", strings = { Manifest.permission.ACCESS_FINE_LOCATION })
-    }
-)
-public class BluetoothPrinterPlugin extends Plugin {
+final class BluetoothPrinterManager {
+    private final Context context;
+    private final NativeBridge.EventEmitter eventEmitter;
     private final Handler handler = new Handler(Looper.getMainLooper());
-    private final Map<String, JSObject> discoveredDevices = new LinkedHashMap<>();
-    private BluetoothAdapter adapter;
+    private final Map<String, JSONObject> discoveredDevices = new LinkedHashMap<>();
+    private final BluetoothAdapter adapter;
+
     private BluetoothLeScanner scanner;
     private ScanCallback scanCallback;
-    private PluginCall scanCall;
-    private PluginCall connectCall;
-    private PluginCall writeCall;
+    private NativeBridge.BridgeCallback scanResult;
+    private NativeBridge.BridgeCallback connectResult;
+    private NativeBridge.BridgeCallback writeResult;
     private BluetoothGatt gatt;
     private BluetoothGattCharacteristic writeCharacteristic;
     private List<UUID> requestedServices = new ArrayList<>();
@@ -60,58 +48,46 @@ public class BluetoothPrinterPlugin extends Plugin {
     private int writeOffset;
     private int mtu = 23;
 
-    @Override
-    public void load() {
-        BluetoothManager manager = (BluetoothManager) getContext().getSystemService(Context.BLUETOOTH_SERVICE);
+    BluetoothPrinterManager(Context context, NativeBridge.EventEmitter eventEmitter) {
+        this.context = context;
+        this.eventEmitter = eventEmitter;
+        BluetoothManager manager = (BluetoothManager) context.getSystemService(Context.BLUETOOTH_SERVICE);
         adapter = manager == null ? null : manager.getAdapter();
     }
 
-    @PluginMethod
-    public void scan(PluginCall call) {
-        if (!hasBluetoothPermission()) {
-            requestBluetoothPermission(call, "scanPermissionCallback");
-            return;
-        }
-        startScan(call);
-    }
-
-    @PermissionCallback
-    private void scanPermissionCallback(PluginCall call) {
-        if (!hasBluetoothPermission()) {
-            call.reject("未获得蓝牙搜索权限");
-            return;
-        }
-        startScan(call);
-    }
-
     @SuppressLint("MissingPermission")
-    private void startScan(PluginCall call) {
+    void scan(JSONObject params, NativeBridge.BridgeCallback callback) {
         if (adapter == null || !adapter.isEnabled()) {
-            call.reject("蓝牙未开启");
+            callback.failure("蓝牙未开启");
             return;
         }
-        if (scanCall != null) {
-            call.reject("正在搜索蓝牙设备");
+        if (scanResult != null) {
+            callback.failure("正在搜索蓝牙设备");
             return;
         }
         scanner = adapter.getBluetoothLeScanner();
         if (scanner == null) {
-            call.reject("无法启动蓝牙搜索");
+            callback.failure("无法启动蓝牙搜索");
             return;
         }
+
         discoveredDevices.clear();
-        scanCall = call;
+        scanResult = callback;
         scanCallback = new ScanCallback() {
             @Override
             public void onScanResult(int callbackType, ScanResult result) {
                 BluetoothDevice device = result.getDevice();
                 String name = device.getName();
                 if (name == null || name.trim().isEmpty()) name = "未命名蓝牙设备";
-                JSObject item = new JSObject();
-                item.put("id", device.getAddress());
-                item.put("name", name);
-                item.put("rssi", result.getRssi());
-                discoveredDevices.put(device.getAddress(), item);
+                JSONObject item = new JSONObject();
+                try {
+                    item.put("id", device.getAddress());
+                    item.put("name", name);
+                    item.put("rssi", result.getRssi());
+                    discoveredDevices.put(device.getAddress(), item);
+                } catch (Exception ignored) {
+                    // Primitive Bluetooth device fields are always serializable.
+                }
             }
 
             @Override
@@ -120,70 +96,55 @@ public class BluetoothPrinterPlugin extends Plugin {
             }
         };
         scanner.startScan(scanCallback);
-        Integer requestedTimeout = call.getInt("timeoutMs", 5000);
-        int timeout = Math.max(1000, Math.min(requestedTimeout == null ? 5000 : requestedTimeout, 15000));
+        int timeout = Math.max(1000, Math.min(params.optInt("timeoutMs", 5000), 15000));
         handler.postDelayed(() -> finishScan(null), timeout);
     }
 
     @SuppressLint("MissingPermission")
     private void finishScan(String error) {
-        if (scanCall == null) return;
+        if (scanResult == null) return;
         if (scanner != null && scanCallback != null) scanner.stopScan(scanCallback);
-        PluginCall call = scanCall;
-        scanCall = null;
+        NativeBridge.BridgeCallback callback = scanResult;
+        scanResult = null;
         scanCallback = null;
         if (error != null) {
-            call.reject(error);
+            callback.failure(error);
             return;
         }
-        JSArray devices = new JSArray();
-        for (JSObject device : discoveredDevices.values()) devices.put(device);
-        JSObject result = new JSObject();
-        result.put("devices", devices);
-        call.resolve(result);
-    }
-
-    @PluginMethod
-    public void connect(PluginCall call) {
-        if (!hasBluetoothPermission()) {
-            requestBluetoothPermission(call, "connectPermissionCallback");
-            return;
+        JSONArray devices = new JSONArray();
+        for (JSONObject device : discoveredDevices.values()) devices.put(device);
+        JSONObject result = new JSONObject();
+        try {
+            result.put("devices", devices);
+            callback.success(result);
+        } catch (Exception exception) {
+            callback.failure("蓝牙搜索结果无法序列化");
         }
-        connectDevice(call);
-    }
-
-    @PermissionCallback
-    private void connectPermissionCallback(PluginCall call) {
-        if (!hasBluetoothPermission()) {
-            call.reject("未获得蓝牙连接权限");
-            return;
-        }
-        connectDevice(call);
     }
 
     @SuppressLint("MissingPermission")
-    private void connectDevice(PluginCall call) {
-        String deviceId = call.getString("deviceId");
-        if (deviceId == null || deviceId.isEmpty()) {
-            call.reject("缺少蓝牙设备 ID");
+    void connect(JSONObject params, NativeBridge.BridgeCallback callback) {
+        String deviceId = params.optString("deviceId");
+        if (deviceId.isEmpty()) {
+            callback.failure("缺少蓝牙设备 ID");
+            return;
+        }
+        requestedServices = parseServiceUuids(params.optJSONArray("serviceUuids"));
+        if (requestedServices.isEmpty()) {
+            callback.failure("未配置打印服务 UUID");
             return;
         }
         try {
-            requestedServices = parseServiceUuids(call.getArray("serviceUuids"));
-            if (requestedServices.isEmpty()) {
-                call.reject("未配置打印服务 UUID");
-                return;
-            }
             disconnectGatt();
             BluetoothDevice device = adapter.getRemoteDevice(deviceId);
-            connectCall = call;
+            connectResult = callback;
             mtu = 23;
-            gatt = device.connectGatt(getContext(), false, gattCallback, BluetoothDevice.TRANSPORT_LE);
+            gatt = device.connectGatt(context, false, gattCallback, BluetoothDevice.TRANSPORT_LE);
             handler.postDelayed(() -> {
-                if (connectCall == call) rejectConnect("连接蓝牙打印机超时");
+                if (connectResult == callback) rejectConnect("连接蓝牙打印机超时");
             }, 12000);
         } catch (Exception error) {
-            call.reject("无法连接蓝牙设备：" + error.getMessage());
+            callback.failure("无法连接蓝牙设备：" + error.getMessage());
         }
     }
 
@@ -192,12 +153,13 @@ public class BluetoothPrinterPlugin extends Plugin {
         @SuppressLint("MissingPermission")
         public void onConnectionStateChange(BluetoothGatt currentGatt, int status, int newState) {
             if (status != BluetoothGatt.GATT_SUCCESS || newState == BluetoothProfile.STATE_DISCONNECTED) {
-                if (connectCall != null) rejectConnect("蓝牙连接已断开（" + status + "）");
+                if (connectResult != null) rejectConnect("蓝牙连接已断开（" + status + "）");
                 rejectWrite("蓝牙连接已断开");
+                eventEmitter.emit("bluetooth.disconnected", new JSONObject());
                 return;
             }
-            if (newState == BluetoothProfile.STATE_CONNECTED) {
-                if (!currentGatt.requestMtu(247)) currentGatt.discoverServices();
+            if (newState == BluetoothProfile.STATE_CONNECTED && !currentGatt.requestMtu(247)) {
+                currentGatt.discoverServices();
             }
         }
 
@@ -232,7 +194,7 @@ public class BluetoothPrinterPlugin extends Plugin {
 
         @Override
         public void onCharacteristicWrite(BluetoothGatt currentGatt, BluetoothGattCharacteristic characteristic, int status) {
-            if (writeCall == null || characteristic != writeCharacteristic) return;
+            if (writeResult == null || characteristic != writeCharacteristic) return;
             if (status != BluetoothGatt.GATT_SUCCESS) {
                 rejectWrite("蓝牙数据写入失败（" + status + "）");
                 return;
@@ -241,47 +203,46 @@ public class BluetoothPrinterPlugin extends Plugin {
         }
     };
 
-    @PluginMethod
-    public void write(PluginCall call) {
+    void write(JSONObject params, NativeBridge.BridgeCallback callback) {
         if (gatt == null || writeCharacteristic == null) {
-            call.reject("蓝牙打印机未连接");
+            callback.failure("蓝牙打印机未连接");
             return;
         }
-        if (writeCall != null) {
-            call.reject("上一条打印数据仍在发送");
+        if (writeResult != null) {
+            callback.failure("上一条打印数据仍在发送");
             return;
         }
-        String encoded = call.getString("data");
+        String encoded = params.optString("data", null);
         if (encoded == null) {
-            call.reject("缺少打印数据");
+            callback.failure("缺少打印数据");
             return;
         }
         try {
             pendingWrite = Base64.decode(encoded, Base64.DEFAULT);
             writeOffset = 0;
-            writeCall = call;
+            writeResult = callback;
             writeNextChunk();
         } catch (IllegalArgumentException error) {
-            call.reject("打印数据不是有效的 Base64");
+            callback.failure("打印数据不是有效的 Base64");
         }
     }
 
     @SuppressWarnings("deprecation")
     @SuppressLint("MissingPermission")
     private void writeNextChunk() {
-        if (writeCall == null || pendingWrite == null || gatt == null || writeCharacteristic == null) return;
+        if (writeResult == null || pendingWrite == null || gatt == null || writeCharacteristic == null) return;
         if (writeOffset >= pendingWrite.length) {
-            PluginCall call = writeCall;
-            writeCall = null;
+            NativeBridge.BridgeCallback callback = writeResult;
+            writeResult = null;
             pendingWrite = null;
-            call.resolve();
+            callback.success(null);
             return;
         }
         int chunkLength = Math.min(Math.max(20, mtu - 3), pendingWrite.length - writeOffset);
         byte[] chunk = Arrays.copyOfRange(pendingWrite, writeOffset, writeOffset + chunkLength);
         writeOffset += chunkLength;
-        boolean supportsResponse = (writeCharacteristic.getProperties() & BluetoothGattCharacteristic.PROPERTY_WRITE) != 0;
-        int writeType = supportsResponse ? BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT : BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE;
+        boolean withResponse = (writeCharacteristic.getProperties() & BluetoothGattCharacteristic.PROPERTY_WRITE) != 0;
+        int writeType = withResponse ? BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT : BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE;
         int result;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             result = gatt.writeCharacteristic(writeCharacteristic, chunk, writeType);
@@ -290,47 +251,51 @@ public class BluetoothPrinterPlugin extends Plugin {
             writeCharacteristic.setValue(chunk);
             result = gatt.writeCharacteristic(writeCharacteristic) ? BluetoothGatt.GATT_SUCCESS : -1;
         }
-        if (result != BluetoothGatt.GATT_SUCCESS) {
-            rejectWrite("无法写入蓝牙打印数据（" + result + "）");
-        } else if (!supportsResponse) {
-            handler.postDelayed(this::writeNextChunk, 15);
-        }
+        if (result != BluetoothGatt.GATT_SUCCESS) rejectWrite("无法写入蓝牙打印数据（" + result + "）");
+        else if (!withResponse) handler.postDelayed(this::writeNextChunk, 15);
     }
 
-    @PluginMethod
-    public void disconnect(PluginCall call) {
+    void disconnect(NativeBridge.BridgeCallback callback) {
         disconnectGatt();
-        call.resolve();
+        callback.success(null);
+    }
+
+    void destroy() {
+        finishScan("页面已关闭");
+        disconnectGatt();
     }
 
     @SuppressLint("MissingPermission")
     private void resolveConnect(BluetoothDevice device) {
-        if (connectCall == null) return;
-        JSObject result = new JSObject();
-        result.put("id", device.getAddress());
-        String name = device.getName();
-        result.put("name", name == null || name.trim().isEmpty() ? "蓝牙打印机" : name);
-        PluginCall call = connectCall;
-        connectCall = null;
-        call.resolve(result);
+        if (connectResult == null) return;
+        JSONObject result = new JSONObject();
+        try {
+            result.put("id", device.getAddress());
+            String name = device.getName();
+            result.put("name", name == null || name.trim().isEmpty() ? "蓝牙打印机" : name);
+            NativeBridge.BridgeCallback callback = connectResult;
+            connectResult = null;
+            callback.success(result);
+        } catch (Exception error) {
+            rejectConnect("蓝牙设备信息无法序列化");
+        }
     }
 
     private void rejectConnect(String message) {
-        if (connectCall != null) {
-            PluginCall call = connectCall;
-            connectCall = null;
-            call.reject(message);
+        if (connectResult != null) {
+            NativeBridge.BridgeCallback callback = connectResult;
+            connectResult = null;
+            callback.failure(message);
         }
         disconnectGatt();
     }
 
     private void rejectWrite(String message) {
-        if (writeCall != null) {
-            PluginCall call = writeCall;
-            writeCall = null;
-            pendingWrite = null;
-            call.reject(message);
-        }
+        if (writeResult == null) return;
+        NativeBridge.BridgeCallback callback = writeResult;
+        writeResult = null;
+        pendingWrite = null;
+        callback.failure(message);
     }
 
     @SuppressLint("MissingPermission")
@@ -344,24 +309,14 @@ public class BluetoothPrinterPlugin extends Plugin {
         }
     }
 
-    private boolean hasBluetoothPermission() {
-        String alias = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S ? "bluetoothModern" : "bluetoothLegacy";
-        return getPermissionState(alias) == PermissionState.GRANTED;
-    }
-
-    private void requestBluetoothPermission(PluginCall call, String callback) {
-        String alias = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S ? "bluetoothModern" : "bluetoothLegacy";
-        requestPermissionForAlias(alias, call, callback);
-    }
-
-    private List<UUID> parseServiceUuids(JSArray values) {
+    private List<UUID> parseServiceUuids(JSONArray values) {
         List<UUID> result = new ArrayList<>();
         if (values == null) return result;
         for (int index = 0; index < values.length(); index += 1) {
             try {
                 result.add(UUID.fromString(values.optString(index).toLowerCase(Locale.ROOT)));
             } catch (IllegalArgumentException ignored) {
-                // Ignore malformed UUIDs and continue with the remaining candidates.
+                // Ignore malformed UUIDs and continue with remaining candidates.
             }
         }
         return result;

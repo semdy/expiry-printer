@@ -1,21 +1,15 @@
-import Capacitor
 import CoreBluetooth
+import Foundation
 
-@objc(BluetoothPrinterPlugin)
-public class BluetoothPrinterPlugin: CAPPlugin, CAPBridgedPlugin, CBCentralManagerDelegate, CBPeripheralDelegate {
-    public let identifier = "BluetoothPrinterPlugin"
-    public let jsName = "BluetoothPrinter"
-    public let pluginMethods: [CAPPluginMethod] = [
-        CAPPluginMethod(name: "scan", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "connect", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "write", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "disconnect", returnType: CAPPluginReturnPromise)
-    ]
+final class BluetoothPrinterManager: NSObject, CBCentralManagerDelegate, CBPeripheralDelegate {
+    typealias Completion = (Result<Any, Error>) -> Void
+    typealias EventEmitter = (String, Any) -> Void
 
     private var central: CBCentralManager!
-    private var scanCall: CAPPluginCall?
-    private var connectCall: CAPPluginCall?
-    private var writeCall: CAPPluginCall?
+    private let eventEmitter: EventEmitter
+    private var scanCompletion: Completion?
+    private var connectCompletion: Completion?
+    private var writeCompletion: Completion?
     private var discovered: [UUID: (peripheral: CBPeripheral, rssi: Int)] = [:]
     private var requestedServices: [CBUUID] = []
     private var connectedPeripheral: CBPeripheral?
@@ -25,83 +19,79 @@ public class BluetoothPrinterPlugin: CAPPlugin, CAPBridgedPlugin, CBCentralManag
     private var writeOffset = 0
     private var connectTimeout: DispatchWorkItem?
 
-    public override func load() {
+    init(eventEmitter: @escaping EventEmitter) {
+        self.eventEmitter = eventEmitter
+        super.init()
         central = CBCentralManager(delegate: self, queue: .main)
     }
 
-    @objc func scan(_ call: CAPPluginCall) {
+    func scan(params: [String: Any], completion: @escaping Completion) {
         DispatchQueue.main.async {
-            guard self.scanCall == nil else {
-                call.reject("正在搜索蓝牙设备")
+            guard self.scanCompletion == nil else {
+                completion(.failure(self.error("正在搜索蓝牙设备")))
                 return
             }
-            self.scanCall = call
+            self.scanCompletion = completion
             self.discovered.removeAll()
             if self.central.state == .poweredOn {
-                self.beginScan(call)
+                self.beginScan(timeoutMs: params["timeoutMs"] as? Int ?? 5000)
             } else if self.central.state != .unknown && self.central.state != .resetting {
                 self.finishScan(error: self.bluetoothStateMessage())
             }
         }
     }
 
-    private func beginScan(_ call: CAPPluginCall) {
-        // Do not filter advertisements: many printers expose their service UUIDs only after connecting.
+    private func beginScan(timeoutMs: Int) {
         central.scanForPeripherals(withServices: nil, options: [CBCentralManagerScanOptionAllowDuplicatesKey: true])
-        let requestedTimeout = call.getInt("timeoutMs") ?? 5000
-        let timeout = max(1000, min(requestedTimeout, 15000))
+        let timeout = max(1000, min(timeoutMs, 15000))
         DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(timeout)) { [weak self] in
             self?.finishScan(error: nil)
         }
     }
 
-    private func finishScan(error: String?) {
-        guard let call = scanCall else { return }
+    private func finishScan(error message: String?) {
+        guard let completion = scanCompletion else { return }
         central.stopScan()
-        scanCall = nil
-        if let error {
-            call.reject(error)
+        scanCompletion = nil
+        if let message {
+            completion(.failure(error(message)))
             return
         }
-        let devices: [[String: Any]] = discovered.values
-            .sorted { $0.rssi > $1.rssi }
-            .map {
-                [
-                    "id": $0.peripheral.identifier.uuidString,
-                    "name": $0.peripheral.name ?? "未命名蓝牙设备",
-                    "rssi": $0.rssi
-                ]
-            }
-        call.resolve(["devices": devices])
+        let devices: [[String: Any]] = discovered.values.sorted { $0.rssi > $1.rssi }.map {
+            ["id": $0.peripheral.identifier.uuidString,
+             "name": $0.peripheral.name ?? "未命名蓝牙设备",
+             "rssi": $0.rssi]
+        }
+        completion(.success(["devices": devices]))
     }
 
-    @objc func connect(_ call: CAPPluginCall) {
+    func connect(params: [String: Any], completion: @escaping Completion) {
         DispatchQueue.main.async {
             guard self.central.state == .poweredOn else {
-                call.reject(self.bluetoothStateMessage())
+                completion(.failure(self.error(self.bluetoothStateMessage())))
                 return
             }
-            guard let rawId = call.getString("deviceId"), let id = UUID(uuidString: rawId) else {
-                call.reject("蓝牙设备 ID 无效")
+            guard let rawId = params["deviceId"] as? String, let id = UUID(uuidString: rawId) else {
+                completion(.failure(self.error("蓝牙设备 ID 无效")))
                 return
             }
-            self.requestedServices = (call.getArray("serviceUuids", String.self) ?? []).map(CBUUID.init(string:))
+            self.requestedServices = (params["serviceUuids"] as? [String] ?? []).map(CBUUID.init(string:))
             guard !self.requestedServices.isEmpty else {
-                call.reject("未配置打印服务 UUID")
+                completion(.failure(self.error("未配置打印服务 UUID")))
                 return
             }
             let peripheral = self.discovered[id]?.peripheral ?? self.central.retrievePeripherals(withIdentifiers: [id]).first
             guard let peripheral else {
-                call.reject("找不到已选择的蓝牙设备，请重新搜索")
+                completion(.failure(self.error("找不到已选择的蓝牙设备，请重新搜索")))
                 return
             }
             self.disconnectCurrent()
-            self.connectCall = call
+            self.connectCompletion = completion
             self.connectedPeripheral = peripheral
             peripheral.delegate = self
             self.central.connect(peripheral)
             let timeout = DispatchWorkItem { [weak self] in
-                guard self?.connectCall === call else { return }
+                guard self?.connectCompletion != nil else { return }
                 self?.rejectConnect("连接蓝牙打印机超时")
             }
             self.connectTimeout = timeout
@@ -109,69 +99,74 @@ public class BluetoothPrinterPlugin: CAPPlugin, CAPBridgedPlugin, CBCentralManag
         }
     }
 
-    @objc func write(_ call: CAPPluginCall) {
+    func write(params: [String: Any], completion: @escaping Completion) {
         DispatchQueue.main.async {
-            guard self.writeCall == nil else {
-                call.reject("上一条打印数据仍在发送")
+            guard self.writeCompletion == nil else {
+                completion(.failure(self.error("上一条打印数据仍在发送")))
                 return
             }
             guard let peripheral = self.connectedPeripheral,
                   peripheral.state == .connected,
-                  let characteristic = self.writeCharacteristic else {
-                call.reject("蓝牙打印机未连接")
+                  self.writeCharacteristic != nil else {
+                completion(.failure(self.error("蓝牙打印机未连接")))
                 return
             }
-            guard let encoded = call.getString("data"), let data = Data(base64Encoded: encoded) else {
-                call.reject("打印数据不是有效的 Base64")
+            guard let encoded = params["data"] as? String, let data = Data(base64Encoded: encoded) else {
+                completion(.failure(self.error("打印数据不是有效的 Base64")))
                 return
             }
             self.pendingData = data
             self.writeOffset = 0
-            self.writeCall = call
+            self.writeCompletion = completion
             self.writeNextChunk()
         }
     }
 
-    @objc func disconnect(_ call: CAPPluginCall) {
+    func disconnect(completion: @escaping Completion) {
         DispatchQueue.main.async {
             self.disconnectCurrent()
-            call.resolve()
+            completion(.success(NSNull()))
         }
     }
 
-    public func centralManagerDidUpdateState(_ central: CBCentralManager) {
-        if central.state == .poweredOn, let call = scanCall {
-            beginScan(call)
+    func destroy() {
+        finishScan(error: "页面已关闭")
+        disconnectCurrent()
+    }
+
+    func centralManagerDidUpdateState(_ central: CBCentralManager) {
+        if central.state == .poweredOn, scanCompletion != nil {
+            beginScan(timeoutMs: 5000)
         } else if central.state != .unknown && central.state != .resetting && central.state != .poweredOn {
             finishScan(error: bluetoothStateMessage())
             rejectConnect(bluetoothStateMessage())
         }
     }
 
-    public func centralManager(_ central: CBCentralManager, didDiscover peripheral: CBPeripheral,
-                               advertisementData: [String: Any], rssi RSSI: NSNumber) {
+    func centralManager(_ central: CBCentralManager, didDiscover peripheral: CBPeripheral,
+                        advertisementData: [String: Any], rssi RSSI: NSNumber) {
         let name = peripheral.name ?? advertisementData[CBAdvertisementDataLocalNameKey] as? String
         guard name != nil else { return }
         discovered[peripheral.identifier] = (peripheral, RSSI.intValue)
     }
 
-    public func centralManager(_ central: CBCentralManager, didConnect peripheral: CBPeripheral) {
+    func centralManager(_ central: CBCentralManager, didConnect peripheral: CBPeripheral) {
         peripheral.delegate = self
         peripheral.discoverServices(requestedServices)
     }
 
-    public func centralManager(_ central: CBCentralManager, didFailToConnect peripheral: CBPeripheral, error: Error?) {
+    func centralManager(_ central: CBCentralManager, didFailToConnect peripheral: CBPeripheral, error: Error?) {
         rejectConnect(error?.localizedDescription ?? "蓝牙打印机连接失败")
     }
 
-    public func centralManager(_ central: CBCentralManager, didDisconnectPeripheral peripheral: CBPeripheral,
-                               error: Error?) {
+    func centralManager(_ central: CBCentralManager, didDisconnectPeripheral peripheral: CBPeripheral, error: Error?) {
         writeCharacteristic = nil
         rejectWrite(error?.localizedDescription ?? "蓝牙连接已断开")
-        if connectCall != nil { rejectConnect(error?.localizedDescription ?? "蓝牙连接已断开") }
+        if connectCompletion != nil { rejectConnect(error?.localizedDescription ?? "蓝牙连接已断开") }
+        eventEmitter("bluetooth.disconnected", [:] as [String: Any])
     }
 
-    public func peripheral(_ peripheral: CBPeripheral, didDiscoverServices error: Error?) {
+    func peripheral(_ peripheral: CBPeripheral, didDiscoverServices error: Error?) {
         if let error {
             rejectConnect("无法发现打印机蓝牙服务：\(error.localizedDescription)")
             return
@@ -185,12 +180,12 @@ public class BluetoothPrinterPlugin: CAPPlugin, CAPBridgedPlugin, CBCentralManag
         for service in matching { peripheral.discoverCharacteristics(nil, for: service) }
     }
 
-    public func peripheral(_ peripheral: CBPeripheral, didDiscoverCharacteristicsFor service: CBService, error: Error?) {
+    func peripheral(_ peripheral: CBPeripheral, didDiscoverCharacteristicsFor service: CBService, error: Error?) {
         pendingServiceDiscoveries -= 1
         if writeCharacteristic == nil {
-            writeCharacteristic = service.characteristics?.first(where: {
+            writeCharacteristic = service.characteristics?.first {
                 $0.properties.contains(.write) || $0.properties.contains(.writeWithoutResponse)
-            })
+            }
         }
         if let characteristic = writeCharacteristic {
             resolveConnect(peripheral, characteristic: characteristic)
@@ -199,26 +194,23 @@ public class BluetoothPrinterPlugin: CAPPlugin, CAPBridgedPlugin, CBCentralManag
         }
     }
 
-    public func peripheral(_ peripheral: CBPeripheral, didWriteValueFor characteristic: CBCharacteristic, error: Error?) {
-        if let error {
-            rejectWrite("蓝牙数据写入失败：\(error.localizedDescription)")
-        } else {
-            writeNextChunk()
-        }
+    func peripheral(_ peripheral: CBPeripheral, didWriteValueFor characteristic: CBCharacteristic, error: Error?) {
+        if let error { rejectWrite("蓝牙数据写入失败：\(error.localizedDescription)") }
+        else { writeNextChunk() }
     }
 
-    public func peripheralIsReady(toSendWriteWithoutResponse peripheral: CBPeripheral) {
+    func peripheralIsReady(toSendWriteWithoutResponse peripheral: CBPeripheral) {
         writeNextChunk()
     }
 
     private func writeNextChunk() {
-        guard let call = writeCall,
+        guard let completion = writeCompletion,
               let peripheral = connectedPeripheral,
               let characteristic = writeCharacteristic else { return }
         if writeOffset >= pendingData.count {
-            writeCall = nil
+            writeCompletion = nil
             pendingData.removeAll()
-            call.resolve()
+            completion(.success(NSNull()))
             return
         }
         let type: CBCharacteristicWriteType = characteristic.properties.contains(.write) ? .withResponse : .withoutResponse
@@ -228,41 +220,36 @@ public class BluetoothPrinterPlugin: CAPPlugin, CAPBridgedPlugin, CBCentralManag
         let chunk = pendingData.subdata(in: writeOffset..<end)
         writeOffset = end
         peripheral.writeValue(chunk, for: characteristic, type: type)
-        if type == .withoutResponse { writeNextChunk() }
+        if type == .withoutResponse { DispatchQueue.main.async { [weak self] in self?.writeNextChunk() } }
     }
 
     private func resolveConnect(_ peripheral: CBPeripheral, characteristic: CBCharacteristic) {
-        guard let call = connectCall else { return }
+        guard let completion = connectCompletion else { return }
         connectTimeout?.cancel()
-        connectCall = nil
+        connectCompletion = nil
         writeCharacteristic = characteristic
-        call.resolve([
-            "id": peripheral.identifier.uuidString,
-            "name": peripheral.name ?? "蓝牙打印机"
-        ])
+        completion(.success(["id": peripheral.identifier.uuidString, "name": peripheral.name ?? "蓝牙打印机"]))
     }
 
     private func rejectConnect(_ message: String) {
-        guard let call = connectCall else { return }
+        guard let completion = connectCompletion else { return }
         connectTimeout?.cancel()
-        connectCall = nil
-        call.reject(message)
+        connectCompletion = nil
+        completion(.failure(error(message)))
         disconnectCurrent()
     }
 
     private func rejectWrite(_ message: String) {
-        guard let call = writeCall else { return }
-        writeCall = nil
+        guard let completion = writeCompletion else { return }
+        writeCompletion = nil
         pendingData.removeAll()
-        call.reject(message)
+        completion(.failure(error(message)))
     }
 
     private func disconnectCurrent() {
         rejectWrite("蓝牙打印机已断开")
         writeCharacteristic = nil
-        if let peripheral = connectedPeripheral {
-            central.cancelPeripheralConnection(peripheral)
-        }
+        if let peripheral = connectedPeripheral { central.cancelPeripheralConnection(peripheral) }
         connectedPeripheral = nil
     }
 
@@ -273,5 +260,9 @@ public class BluetoothPrinterPlugin: CAPPlugin, CAPBridgedPlugin, CBCentralManag
         case .unsupported: return "当前设备不支持低功耗蓝牙"
         default: return "蓝牙暂不可用"
         }
+    }
+
+    private func error(_ message: String) -> Error {
+        NSError(domain: "BluetoothPrinter", code: 1, userInfo: [NSLocalizedDescriptionKey: message])
     }
 }

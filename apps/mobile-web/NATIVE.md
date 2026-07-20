@@ -1,19 +1,33 @@
-# Android / iOS 蓝牙打印
+# Android / iOS 原生蓝牙打印
 
-移动端使用 Capacitor 承载现有 React 页面，并通过本地 `BluetoothPrinter` 插件访问 BLE：
-
-- Android：`BluetoothLeScanner` + `BluetoothGatt`
-- iOS：`CoreBluetooth`
-- 浏览器：继续使用原来的 Web Bluetooth 实现
-
-插件向 TypeScript 暴露统一接口：
+移动端原生壳不依赖 Capacitor。Web 业务统一通过 `src/nativeBridge.ts` 调原生：
 
 ```ts
-scan({ serviceUuids, timeoutMs })
-connect({ deviceId, serviceUuids })
-write({ data }) // Base64 编码的 TSPL 字节
-disconnect()
+const result = await NativeBridge.call('bluetooth.scan', {
+  serviceUuids,
+  timeoutMs: 5000
+});
+
+NativeBridge.on('bluetooth.disconnected', () => {
+  // 更新页面连接状态
+});
+
+NativeBridge.emit('pageReady', { version: '1.0.0' });
 ```
+
+桥接通道：
+
+- Android：Java `WebView.addJavascriptInterface`，对象名为 `NativeBridgeAndroid`
+- iOS：`WKScriptMessageHandler`，名称为 `NativeBridge`
+- Native 回 Web：两端统一调用 `window.__nativeReceive(message)`
+- 浏览器：继续使用 Web Bluetooth，不会调用原生桥
+
+当前原生方法为：
+
+- `bluetooth.scan`
+- `bluetooth.connect`
+- `bluetooth.write`（数据是 Base64 编码的 TSPL 字节）
+- `bluetooth.disconnect`
 
 ## 构建和打开工程
 
@@ -25,21 +39,21 @@ npm run native:android
 npm run native:ios
 ```
 
-`native:sync` 会先构建 H5，然后把 `dist` 同步到 Android 和 iOS 工程。后两个命令分别打开 Android Studio 和 Xcode。
+`native:sync` 会构建 H5，并把 `dist` 复制到 Android 和 iOS 工程。Android Studio 可直接构建 `android`，Xcode 可直接打开 `ios/App/App.xcodeproj`。
 
 ## 后端地址
 
-真机里的 `localhost` 指向手机自身。构建真机包前必须把后端地址设为电脑局域网地址或可访问的 HTTPS 地址，例如：
+真机里的 `localhost` 指向手机自身。构建真机包前需使用电脑局域网地址或可访问的 HTTPS 地址，例如：
 
 ```bash
 VITE_API_BASE=http://192.168.1.10:3000 npm run native:sync
 ```
 
-如果 Android 使用明文 HTTP 开发地址，需要在 Android 网络安全配置中明确允许；生产环境应使用 HTTPS。iOS 同样建议使用 HTTPS，避免放宽 ATS。
+Android 当前为本地开发允许明文 HTTP；正式环境建议改用 HTTPS 并关闭 `usesCleartextTraffic`。iOS 同样建议使用 HTTPS。
 
 ## 真机要求
 
-- BLE 搜索和打印必须使用真机，模拟器不能完成实际打印验证。
-- Android 12 及以上会请求“附近设备”权限，旧版本会请求用于 BLE 扫描的定位权限。
-- iOS 首次扫描会弹出蓝牙权限提示，说明文字配置在 `Info.plist`。
-- 当前按候选 Service UUID 顺序寻找第一个可写 Characteristic，并发送 TSPL。确定打印机型号后，建议把 Service UUID 和 Characteristic UUID 收窄为厂家文档给出的值。
+- BLE 搜索和打印必须使用真机。
+- Android 12 及以上会请求“附近设备”权限，原生部分全部使用 Java。
+- iOS 首次扫描会弹出蓝牙权限提示。
+- 当前按候选 Service UUID 顺序寻找第一个可写 Characteristic。确定打印机型号后，建议改为厂家提供的精确 UUID。

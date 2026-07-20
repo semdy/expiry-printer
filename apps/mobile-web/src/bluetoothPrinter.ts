@@ -1,4 +1,4 @@
-import { Capacitor, registerPlugin } from '@capacitor/core';
+import NativeBridge from './nativeBridge';
 
 export type NativeBluetoothDevice = {
   id: string;
@@ -6,17 +6,23 @@ export type NativeBluetoothDevice = {
   rssi?: number;
 };
 
-type BluetoothPrinterPlugin = {
-  scan(options: { serviceUuids: string[]; timeoutMs?: number }): Promise<{ devices: NativeBluetoothDevice[] }>;
-  connect(options: { deviceId: string; serviceUuids: string[] }): Promise<{ id: string; name: string }>;
-  write(options: { data: string }): Promise<void>;
-  disconnect(): Promise<void>;
+export const NativeBluetoothPrinter = {
+  scan(options: { serviceUuids: string[]; timeoutMs?: number }) {
+    return NativeBridge.call<{ devices: NativeBluetoothDevice[] }>('bluetooth.scan', options);
+  },
+  connect(options: { deviceId: string; serviceUuids: string[] }) {
+    return NativeBridge.call<{ id: string; name: string }>('bluetooth.connect', options);
+  },
+  write(options: { data: string }) {
+    return NativeBridge.call<void>('bluetooth.write', options);
+  },
+  disconnect() {
+    return NativeBridge.call<void>('bluetooth.disconnect');
+  }
 };
 
-export const NativeBluetoothPrinter = registerPlugin<BluetoothPrinterPlugin>('BluetoothPrinter');
-
 export function hasNativeBluetoothPrinter() {
-  return Capacitor.isNativePlatform();
+  return NativeBridge.isAvailable();
 }
 
 export function bytesToBase64(bytes: Uint8Array) {

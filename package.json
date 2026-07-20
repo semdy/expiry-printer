@@ -34,10 +34,5 @@
     "fsevents@2.3.3": true,
     "fsevents@2.3.2": true,
     "prisma@5.22.0": true
-  },
-  "overrides": {
-    "@capacitor/cli": {
-      "tar": "7.5.16"
-    }
   }
 }
