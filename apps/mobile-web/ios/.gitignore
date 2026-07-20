@@ -4,3 +4,9 @@ App/output
 App/App/public
 DerivedData
 xcuserdata
+
+# Xcode command-line build outputs and archives
+/build/
+*.xcarchive
+*.xcresult
+*.ipa
