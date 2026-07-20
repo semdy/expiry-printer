@@ -52,6 +52,18 @@ npm run dev:mobile
 - Web 管理后台：http://localhost:5173
 - 移动端 H5：http://localhost:5174
 
+## Android / iOS 原生蓝牙打印
+
+`apps/mobile-web` 已包含 Capacitor Android/iOS 工程和本地 BLE 打印插件。同步或打开原生工程：
+
+```bash
+npm run native:sync
+npm run native:android
+npm run native:ios
+```
+
+真机运行和后端地址配置见 [apps/mobile-web/NATIVE.md](apps/mobile-web/NATIVE.md)。
+
 ## 自动冒烟测试
 
 每次改完核心流程后运行：
@@ -65,5 +77,5 @@ npm run test:smoke
 ## 当前范围
 
 - 已包含物料配置、自定义配置、标签打印、效期预警、使用/废弃、打印日志、废弃日志和数据中心。
-- 第一版使用浏览器打印，不直连真实打印机。
+- 移动端支持 Android Chrome 的 Web Bluetooth，也支持 Android/iOS 原生壳通过 BLE 直连 TSPL 标签打印机。
 - 第一版不做登录和复杂权限，操作人使用环境变量中的默认值。

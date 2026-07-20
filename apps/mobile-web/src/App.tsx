@@ -4,6 +4,7 @@ import cp936Table from 'iconv-lite/encodings/tables/cp936.json';
 import gbkAddedTable from 'iconv-lite/encodings/tables/gbk-added.json';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { apiGet, apiSend } from './api';
+import { bytesToBase64, hasNativeBluetoothPrinter, NativeBluetoothPrinter, type NativeBluetoothDevice } from './bluetoothPrinter';
 
 type Tab = 'home' | 'print' | 'warning' | 'operation' | 'printer';
 
@@ -55,12 +56,18 @@ type BluetoothPrinterDevice = {
 };
 
 type BluetoothPrinterConnection = {
+  kind: 'web';
   name: string;
   device: BluetoothPrinterDevice;
   characteristic: WritableBluetoothCharacteristic;
+} | {
+  kind: 'native';
+  name: string;
+  deviceId: string;
 };
 
 const printerStorageKey = 'expiry-label-printer-name';
+const printerIdStorageKey = 'expiry-label-printer-id';
 const bluetoothServiceUuids = [
   '0000ae30-0000-1000-8000-00805f9b34fb',
   '0000ae3a-0000-1000-8000-00805f9b34fb',
@@ -93,6 +100,9 @@ export default function App() {
   const [actionConfirm, setActionConfirm] = useState<null | { title: string; content: string; confirmText: string; resolve: (ok: boolean) => void }>(null);
   const [printerName, setPrinterName] = useState('');
   const [recentPrinterName, setRecentPrinterName] = useState(() => window.localStorage.getItem(printerStorageKey) || '');
+  const [recentPrinterId, setRecentPrinterId] = useState(() => window.localStorage.getItem(printerIdStorageKey) || '');
+  const [nativeDevices, setNativeDevices] = useState<NativeBluetoothDevice[]>([]);
+  const [devicePickerOpen, setDevicePickerOpen] = useState(false);
   const [bluetoothConnected, setBluetoothConnected] = useState(false);
   const [bluetoothStatus, setBluetoothStatus] = useState('未连接');
   const [notice, setNotice] = useState<{ content: string; type?: 'success' | 'warning' } | null>(null);
@@ -388,6 +398,20 @@ export default function App() {
   }
 
   async function connectBluetoothPrinter() {
+    if (hasNativeBluetoothPrinter()) {
+      try {
+        setBluetoothStatus('搜索中');
+        const { devices } = await NativeBluetoothPrinter.scan({ serviceUuids: bluetoothServiceUuids, timeoutMs: 5000 });
+        if (!devices.length) throw new Error('未搜索到蓝牙设备，请确认打印机已开机');
+        setNativeDevices(devices);
+        setDevicePickerOpen(true);
+        setBluetoothStatus(`发现 ${devices.length} 台设备`);
+      } catch (error) {
+        setBluetoothStatus('搜索失败');
+        showNotice(error instanceof Error ? error.message : '蓝牙设备搜索失败', 'warning');
+      }
+      return;
+    }
     if (!('bluetooth' in navigator)) {
       showNotice('当前浏览器不支持蓝牙直连', 'warning');
       setBluetoothStatus('浏览器不支持');
@@ -410,7 +434,36 @@ export default function App() {
     }
   }
 
+  async function connectNativeDevice(device: NativeBluetoothDevice) {
+    setDevicePickerOpen(false);
+    setBluetoothStatus('连接中');
+    try {
+      const connected = await NativeBluetoothPrinter.connect({ deviceId: device.id, serviceUuids: bluetoothServiceUuids });
+      bluetoothPrinter.current = { kind: 'native', name: connected.name, deviceId: connected.id };
+      setPrinterName(connected.name);
+      setRecentPrinterName(connected.name);
+      setRecentPrinterId(connected.id);
+      setBluetoothConnected(true);
+      setBluetoothStatus('已连接');
+      window.localStorage.setItem(printerStorageKey, connected.name);
+      window.localStorage.setItem(printerIdStorageKey, connected.id);
+      showNotice(`已连接蓝牙打印机：${connected.name}`, 'success');
+    } catch (error) {
+      setBluetoothConnected(false);
+      setBluetoothStatus('连接失败');
+      showNotice(error instanceof Error ? error.message : '蓝牙打印机连接失败', 'warning');
+    }
+  }
+
   async function quickConnectBluetoothPrinter() {
+    if (hasNativeBluetoothPrinter()) {
+      if (!recentPrinterId) {
+        showNotice('没有可快速连接的蓝牙打印机，请重新搜索', 'warning');
+        return;
+      }
+      await connectNativeDevice({ id: recentPrinterId, name: recentPrinterName || '蓝牙打印机' });
+      return;
+    }
     if (!('bluetooth' in navigator)) {
       showNotice('当前浏览器不支持蓝牙直连', 'warning');
       setBluetoothStatus('浏览器不支持');
@@ -533,6 +586,18 @@ export default function App() {
         </div>
       )}
       {notice && <div className={`local-toast local-toast-${notice.type}`}>{notice.content}</div>}
+      <Popup visible={devicePickerOpen} onMaskClick={() => setDevicePickerOpen(false)} bodyStyle={{ borderTopLeftRadius: 16, borderTopRightRadius: 16 }}>
+        <div className="device-picker">
+          <h3>选择蓝牙打印机</h3>
+          {nativeDevices.map((device) => (
+            <button key={device.id} className="device-picker-item" onClick={() => { void connectNativeDevice(device); }}>
+              <strong>{device.name}</strong>
+              <span>{typeof device.rssi === 'number' ? `信号 ${device.rssi} dBm` : device.id}</span>
+            </button>
+          ))}
+          <Button block onClick={() => setDevicePickerOpen(false)}>取消</Button>
+        </div>
+      </Popup>
     </div>
   );
 }
@@ -845,6 +910,7 @@ async function connectBluetoothDevice(device: BluetoothPrinterDevice): Promise<B
       const characteristic = characteristics.find((item) => item.properties.writeWithoutResponse || item.properties.write);
       if (characteristic) {
         return {
+          kind: 'web',
           name: device.name || '蓝牙打印机',
           device,
           characteristic
@@ -863,7 +929,11 @@ async function printLabelsViaBluetooth(labels: LabelPayload[], connection: Bluet
 
   for (const label of flattened) {
     const command = buildTsplLabelCommand(label);
-    await writeBluetoothChunks(connection.characteristic, command);
+    if (connection.kind === 'native') {
+      await NativeBluetoothPrinter.write({ data: bytesToBase64(command) });
+    } else {
+      await writeBluetoothChunks(connection.characteristic, command);
+    }
   }
 }
 

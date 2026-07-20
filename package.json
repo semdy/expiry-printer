@@ -11,6 +11,9 @@
     "dev:server": "npm --workspace apps/server run dev",
     "dev:admin": "npm --workspace apps/admin-web run dev",
     "dev:mobile": "npm --workspace apps/mobile-web run dev",
+    "native:sync": "npm --workspace apps/mobile-web run native:sync",
+    "native:android": "npm --workspace apps/mobile-web run native:android",
+    "native:ios": "npm --workspace apps/mobile-web run native:ios",
     "build": "npm run build --workspaces --if-present",
     "lint": "npm run lint --workspaces --if-present",
     "test:smoke": "playwright test",
@@ -31,5 +34,10 @@
     "fsevents@2.3.3": true,
     "fsevents@2.3.2": true,
     "prisma@5.22.0": true
+  },
+  "overrides": {
+    "@capacitor/cli": {
+      "tar": "7.5.16"
+    }
   }
 }
