@@ -54,6 +54,12 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
+    protected void onResume() {
+        super.onResume();
+        if (nativeBridge != null) nativeBridge.onResume();
+    }
+
+    @Override
     public void onBackPressed() {
         if (webView.canGoBack()) webView.goBack();
         else super.onBackPressed();

@@ -2,8 +2,12 @@ package com.expirylabel.mobile;
 
 import android.Manifest;
 import android.app.Activity;
+import android.app.AlertDialog;
+import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.net.Uri;
 import android.os.Build;
+import android.provider.Settings;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebView;
 
@@ -14,11 +18,14 @@ import org.json.JSONObject;
 
 public final class NativeBridge {
     private static final int BLUETOOTH_PERMISSION_REQUEST = 1001;
+    private static final String PERMISSION_PREFERENCES = "BluetoothPermission";
+    private static final String PERMISSION_REQUESTED_KEY = "requested";
 
     private final Activity activity;
     private final WebView webView;
     private final BluetoothPrinterManager printerManager;
     private JSONObject pendingPermissionMessage;
+    private boolean webReady;
 
     NativeBridge(Activity activity, WebView webView) {
         this.activity = activity;
@@ -37,7 +44,13 @@ public final class NativeBridge {
                 }
                 if (!"call".equals(message.optString("type"))) return;
                 if (requiresBluetoothPermission(message.optString("method")) && !hasBluetoothPermission()) {
+                    if (hasRequestedBluetoothPermission() && hasPermanentlyDeniedBluetoothPermission()) {
+                        sendError(message.optInt("callbackId", -1), "未获得蓝牙权限，请前往系统设置开启");
+                        showBluetoothSettingsAlert();
+                        return;
+                    }
                     pendingPermissionMessage = message;
+                    markBluetoothPermissionRequested();
                     ActivityCompat.requestPermissions(activity, bluetoothPermissions(), BLUETOOTH_PERMISSION_REQUEST);
                     return;
                 }
@@ -53,7 +66,14 @@ public final class NativeBridge {
         JSONObject message = pendingPermissionMessage;
         pendingPermissionMessage = null;
         if (hasBluetoothPermission()) dispatch(message);
-        else sendError(message.optInt("callbackId", -1), "未获得蓝牙权限");
+        else {
+            sendError(message.optInt("callbackId", -1), "未获得蓝牙权限，请前往系统设置开启");
+            showBluetoothSettingsAlert();
+        }
+    }
+
+    void onResume() {
+        if (webReady && hasBluetoothPermission()) printerManager.restoreLastConnection();
     }
 
     void destroy() {
@@ -98,7 +118,11 @@ public final class NativeBridge {
 
     private void onWebEvent(String event, JSONObject data) {
         // 页面通知统一从这里进入，后续可按事件名分发给宿主业务。
-        if ("pageReady".equals(event)) emit("native.ready", data == null ? new JSONObject() : data);
+        if ("pageReady".equals(event)) {
+            webReady = true;
+            emit("native.ready", data == null ? new JSONObject() : data);
+            if (hasBluetoothPermission()) printerManager.restoreLastConnection();
+        }
     }
 
     private void sendSuccess(int callbackId, Object data) {
@@ -159,6 +183,40 @@ public final class NativeBridge {
             return new String[] { Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT };
         }
         return new String[] { Manifest.permission.ACCESS_FINE_LOCATION };
+    }
+
+    private boolean hasRequestedBluetoothPermission() {
+        return activity.getSharedPreferences(PERMISSION_PREFERENCES, Activity.MODE_PRIVATE)
+            .getBoolean(PERMISSION_REQUESTED_KEY, false);
+    }
+
+    private void markBluetoothPermissionRequested() {
+        activity.getSharedPreferences(PERMISSION_PREFERENCES, Activity.MODE_PRIVATE)
+            .edit()
+            .putBoolean(PERMISSION_REQUESTED_KEY, true)
+            .apply();
+    }
+
+    private boolean hasPermanentlyDeniedBluetoothPermission() {
+        for (String permission : bluetoothPermissions()) {
+            if (ContextCompat.checkSelfPermission(activity, permission) != PackageManager.PERMISSION_GRANTED &&
+                !ActivityCompat.shouldShowRequestPermissionRationale(activity, permission)) return true;
+        }
+        return false;
+    }
+
+    private void showBluetoothSettingsAlert() {
+        if (activity.isFinishing() || activity.isDestroyed()) return;
+        new AlertDialog.Builder(activity)
+            .setTitle("需要蓝牙权限")
+            .setMessage("请前往系统设置，允许“效期标签”使用附近设备和蓝牙权限后再搜索打印机。")
+            .setNegativeButton("取消", null)
+            .setPositiveButton("前往设置", (dialog, which) -> {
+                Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+                intent.setData(Uri.fromParts("package", activity.getPackageName(), null));
+                activity.startActivity(intent);
+            })
+            .show();
     }
 
     interface BridgeCallback {

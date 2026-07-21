@@ -13,6 +13,7 @@ import android.bluetooth.le.BluetoothLeScanner;
 import android.bluetooth.le.ScanCallback;
 import android.bluetooth.le.ScanResult;
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
@@ -23,6 +24,7 @@ import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -30,7 +32,13 @@ import java.util.Map;
 import java.util.UUID;
 
 final class BluetoothPrinterManager {
+    private static final String CONNECTION_PREFERENCES = "BluetoothPrinterConnection";
+    private static final String DEVICE_ID_KEY = "deviceId";
+    private static final String DEVICE_NAME_KEY = "deviceName";
+    private static final String SERVICE_UUIDS_KEY = "serviceUuids";
+
     private final Context context;
+    private final SharedPreferences preferences;
     private final NativeBridge.EventEmitter eventEmitter;
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final Map<String, JSONObject> discoveredDevices = new LinkedHashMap<>();
@@ -47,10 +55,12 @@ final class BluetoothPrinterManager {
     private byte[] pendingWrite;
     private int writeOffset;
     private int mtu = 23;
+    private boolean restoringConnection;
 
     BluetoothPrinterManager(Context context, NativeBridge.EventEmitter eventEmitter) {
         this.context = context;
         this.eventEmitter = eventEmitter;
+        preferences = context.getSharedPreferences(CONNECTION_PREFERENCES, Context.MODE_PRIVATE);
         BluetoothManager manager = (BluetoothManager) context.getSystemService(Context.BLUETOOTH_SERVICE);
         adapter = manager == null ? null : manager.getAdapter();
     }
@@ -136,6 +146,7 @@ final class BluetoothPrinterManager {
         }
         try {
             disconnectGatt();
+            restoringConnection = false;
             BluetoothDevice device = adapter.getRemoteDevice(deviceId);
             connectResult = callback;
             mtu = 23;
@@ -148,12 +159,48 @@ final class BluetoothPrinterManager {
         }
     }
 
+    @SuppressLint("MissingPermission")
+    void restoreLastConnection() {
+        if (gatt != null || adapter == null || !adapter.isEnabled()) return;
+        String deviceId = preferences.getString(DEVICE_ID_KEY, null);
+        if (deviceId == null) return;
+        requestedServices = new ArrayList<>();
+        for (String value : preferences.getStringSet(SERVICE_UUIDS_KEY, new HashSet<>())) {
+            try {
+                requestedServices.add(UUID.fromString(value));
+            } catch (IllegalArgumentException ignored) {
+                // Ignore stale malformed values.
+            }
+        }
+        if (requestedServices.isEmpty()) return;
+
+        try {
+            BluetoothDevice device = adapter.getRemoteDevice(deviceId);
+            restoringConnection = true;
+            JSONObject payload = devicePayload(device);
+            eventEmitter.emit("bluetooth.restoring", payload);
+            mtu = 23;
+            gatt = device.connectGatt(context, false, gattCallback, BluetoothDevice.TRANSPORT_LE);
+            handler.postDelayed(() -> {
+                if (restoringConnection) failConnection("恢复蓝牙打印机连接超时");
+            }, 12000);
+        } catch (Exception error) {
+            failConnection("无法恢复蓝牙打印机连接：" + error.getMessage());
+        }
+    }
+
     private final BluetoothGattCallback gattCallback = new BluetoothGattCallback() {
         @Override
         @SuppressLint("MissingPermission")
         public void onConnectionStateChange(BluetoothGatt currentGatt, int status, int newState) {
             if (status != BluetoothGatt.GATT_SUCCESS || newState == BluetoothProfile.STATE_DISCONNECTED) {
-                if (connectResult != null) rejectConnect("蓝牙连接已断开（" + status + "）");
+                if (connectResult != null || restoringConnection) {
+                    failConnection("蓝牙连接已断开（" + status + "）");
+                } else {
+                    writeCharacteristic = null;
+                    currentGatt.close();
+                    if (gatt == currentGatt) gatt = null;
+                }
                 rejectWrite("蓝牙连接已断开");
                 eventEmitter.emit("bluetooth.disconnected", new JSONObject());
                 return;
@@ -173,7 +220,7 @@ final class BluetoothPrinterManager {
         @Override
         public void onServicesDiscovered(BluetoothGatt currentGatt, int status) {
             if (status != BluetoothGatt.GATT_SUCCESS) {
-                rejectConnect("无法发现打印机蓝牙服务");
+                failConnection("无法发现打印机蓝牙服务");
                 return;
             }
             for (UUID serviceUuid : requestedServices) {
@@ -184,12 +231,13 @@ final class BluetoothPrinterManager {
                     if ((properties & BluetoothGattCharacteristic.PROPERTY_WRITE) != 0 ||
                         (properties & BluetoothGattCharacteristic.PROPERTY_WRITE_NO_RESPONSE) != 0) {
                         writeCharacteristic = characteristic;
-                        resolveConnect(currentGatt.getDevice());
+                        if (restoringConnection) resolveRestore(currentGatt.getDevice());
+                        else resolveConnect(currentGatt.getDevice());
                         return;
                     }
                 }
             }
-            rejectConnect("未找到可写入的蓝牙打印服务");
+            failConnection("未找到可写入的蓝牙打印服务");
         }
 
         @Override
@@ -256,6 +304,8 @@ final class BluetoothPrinterManager {
     }
 
     void disconnect(NativeBridge.BridgeCallback callback) {
+        preferences.edit().clear().apply();
+        restoringConnection = false;
         disconnectGatt();
         callback.success(null);
     }
@@ -268,17 +318,41 @@ final class BluetoothPrinterManager {
     @SuppressLint("MissingPermission")
     private void resolveConnect(BluetoothDevice device) {
         if (connectResult == null) return;
-        JSONObject result = new JSONObject();
         try {
-            result.put("id", device.getAddress());
-            String name = device.getName();
-            result.put("name", name == null || name.trim().isEmpty() ? "蓝牙打印机" : name);
+            JSONObject result = devicePayload(device);
+            HashSet<String> services = new HashSet<>();
+            for (UUID uuid : requestedServices) services.add(uuid.toString());
+            preferences.edit()
+                .putString(DEVICE_ID_KEY, device.getAddress())
+                .putString(DEVICE_NAME_KEY, result.optString("name"))
+                .putStringSet(SERVICE_UUIDS_KEY, services)
+                .apply();
             NativeBridge.BridgeCallback callback = connectResult;
             connectResult = null;
             callback.success(result);
         } catch (Exception error) {
             rejectConnect("蓝牙设备信息无法序列化");
         }
+    }
+
+    @SuppressLint("MissingPermission")
+    private void resolveRestore(BluetoothDevice device) {
+        restoringConnection = false;
+        eventEmitter.emit("bluetooth.restored", devicePayload(device));
+    }
+
+    @SuppressLint("MissingPermission")
+    private JSONObject devicePayload(BluetoothDevice device) {
+        JSONObject result = new JSONObject();
+        try {
+            result.put("id", device.getAddress());
+            String name = device.getName();
+            if (name == null || name.trim().isEmpty()) name = preferences.getString(DEVICE_NAME_KEY, "蓝牙打印机");
+            result.put("name", name);
+        } catch (Exception ignored) {
+            // Primitive Bluetooth device fields are always serializable.
+        }
+        return result;
     }
 
     private void rejectConnect(String message) {
@@ -288,6 +362,24 @@ final class BluetoothPrinterManager {
             callback.failure(message);
         }
         disconnectGatt();
+    }
+
+    private void failConnection(String message) {
+        if (connectResult != null) {
+            rejectConnect(message);
+            return;
+        }
+        if (restoringConnection) {
+            restoringConnection = false;
+            JSONObject payload = new JSONObject();
+            try {
+                payload.put("error", message);
+            } catch (Exception ignored) {
+                // Primitive error text is always serializable.
+            }
+            eventEmitter.emit("bluetooth.restoreFailed", payload);
+            disconnectGatt();
+        }
     }
 
     private void rejectWrite(String message) {

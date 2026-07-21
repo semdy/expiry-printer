@@ -5,6 +5,9 @@ final class BluetoothPrinterManager: NSObject, CBCentralManagerDelegate, CBPerip
     typealias Completion = (Result<Any, Error>) -> Void
     typealias EventEmitter = (String, Any) -> Void
 
+    private static let restorationIdentifier = "com.expirylabel.mobile.bluetoothPrinter"
+    private static let serviceUuidsKey = "BluetoothPrinterServiceUuids"
+
     private var central: CBCentralManager!
     private let eventEmitter: EventEmitter
     private var scanCompletion: Completion?
@@ -18,11 +21,17 @@ final class BluetoothPrinterManager: NSObject, CBCentralManagerDelegate, CBPerip
     private var pendingData = Data()
     private var writeOffset = 0
     private var connectTimeout: DispatchWorkItem?
+    private var restoringConnection = false
 
     init(eventEmitter: @escaping EventEmitter) {
         self.eventEmitter = eventEmitter
         super.init()
-        central = CBCentralManager(delegate: self, queue: .main)
+        requestedServices = (UserDefaults.standard.stringArray(forKey: Self.serviceUuidsKey) ?? []).map(CBUUID.init(string:))
+        central = CBCentralManager(
+            delegate: self,
+            queue: .main,
+            options: [CBCentralManagerOptionRestoreIdentifierKey: Self.restorationIdentifier]
+        )
     }
 
     func scan(params: [String: Any], completion: @escaping Completion) {
@@ -75,11 +84,13 @@ final class BluetoothPrinterManager: NSObject, CBCentralManagerDelegate, CBPerip
                 completion(.failure(self.error("蓝牙设备 ID 无效")))
                 return
             }
-            self.requestedServices = (params["serviceUuids"] as? [String] ?? []).map(CBUUID.init(string:))
+            let serviceUuids = params["serviceUuids"] as? [String] ?? []
+            self.requestedServices = serviceUuids.map(CBUUID.init(string:))
             guard !self.requestedServices.isEmpty else {
                 completion(.failure(self.error("未配置打印服务 UUID")))
                 return
             }
+            UserDefaults.standard.set(serviceUuids, forKey: Self.serviceUuidsKey)
             let peripheral = self.discovered[id]?.peripheral ?? self.central.retrievePeripherals(withIdentifiers: [id]).first
             guard let peripheral else {
                 completion(.failure(self.error("找不到已选择的蓝牙设备，请重新搜索")))
@@ -139,7 +150,26 @@ final class BluetoothPrinterManager: NSObject, CBCentralManagerDelegate, CBPerip
             beginScan(timeoutMs: 5000)
         } else if central.state != .unknown && central.state != .resetting && central.state != .poweredOn {
             finishScan(error: bluetoothStateMessage())
-            rejectConnect(bluetoothStateMessage())
+            failConnection(bluetoothStateMessage())
+        }
+    }
+
+    func centralManager(_ central: CBCentralManager, willRestoreState dict: [String: Any]) {
+        guard let peripherals = dict[CBCentralManagerRestoredStatePeripheralsKey] as? [CBPeripheral],
+              let peripheral = peripherals.first else { return }
+
+        restoringConnection = true
+        connectedPeripheral = peripheral
+        peripheral.delegate = self
+        eventEmitter("bluetooth.restoring", [
+            "id": peripheral.identifier.uuidString,
+            "name": peripheral.name ?? "蓝牙打印机"
+        ])
+
+        if peripheral.state == .connected {
+            peripheral.discoverServices(requestedServices.isEmpty ? nil : requestedServices)
+        } else if peripheral.state == .disconnected {
+            central.connect(peripheral)
         }
     }
 
@@ -156,10 +186,11 @@ final class BluetoothPrinterManager: NSObject, CBCentralManagerDelegate, CBPerip
     }
 
     func centralManager(_ central: CBCentralManager, didFailToConnect peripheral: CBPeripheral, error: Error?) {
-        rejectConnect(error?.localizedDescription ?? "蓝牙打印机连接失败")
+        failConnection(error?.localizedDescription ?? "蓝牙打印机连接失败")
     }
 
     func centralManager(_ central: CBCentralManager, didDisconnectPeripheral peripheral: CBPeripheral, error: Error?) {
+        restoringConnection = false
         writeCharacteristic = nil
         rejectWrite(error?.localizedDescription ?? "蓝牙连接已断开")
         if connectCompletion != nil { rejectConnect(error?.localizedDescription ?? "蓝牙连接已断开") }
@@ -168,12 +199,14 @@ final class BluetoothPrinterManager: NSObject, CBCentralManagerDelegate, CBPerip
 
     func peripheral(_ peripheral: CBPeripheral, didDiscoverServices error: Error?) {
         if let error {
-            rejectConnect("无法发现打印机蓝牙服务：\(error.localizedDescription)")
+            failConnection("无法发现打印机蓝牙服务：\(error.localizedDescription)")
             return
         }
-        let matching = (peripheral.services ?? []).filter { requestedServices.contains($0.uuid) }
+        let matching = (peripheral.services ?? []).filter {
+            requestedServices.isEmpty || requestedServices.contains($0.uuid)
+        }
         guard !matching.isEmpty else {
-            rejectConnect("未找到匹配的蓝牙打印服务")
+            failConnection("未找到匹配的蓝牙打印服务")
             return
         }
         pendingServiceDiscoveries = matching.count
@@ -188,9 +221,17 @@ final class BluetoothPrinterManager: NSObject, CBCentralManagerDelegate, CBPerip
             }
         }
         if let characteristic = writeCharacteristic {
-            resolveConnect(peripheral, characteristic: characteristic)
+            if restoringConnection {
+                restoringConnection = false
+                eventEmitter("bluetooth.restored", [
+                    "id": peripheral.identifier.uuidString,
+                    "name": peripheral.name ?? "蓝牙打印机"
+                ])
+            } else {
+                resolveConnect(peripheral, characteristic: characteristic)
+            }
         } else if pendingServiceDiscoveries == 0 {
-            rejectConnect("未找到可写入的蓝牙打印通道")
+            failConnection("未找到可写入的蓝牙打印通道")
         }
     }
 
@@ -237,6 +278,18 @@ final class BluetoothPrinterManager: NSObject, CBCentralManagerDelegate, CBPerip
         connectCompletion = nil
         completion(.failure(error(message)))
         disconnectCurrent()
+    }
+
+    private func failConnection(_ message: String) {
+        if connectCompletion != nil {
+            rejectConnect(message)
+            return
+        }
+        if restoringConnection {
+            restoringConnection = false
+            eventEmitter("bluetooth.restoreFailed", ["error": message])
+            disconnectCurrent()
+        }
     }
 
     private func rejectWrite(_ message: String) {

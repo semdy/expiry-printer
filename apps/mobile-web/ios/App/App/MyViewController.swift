@@ -1,9 +1,12 @@
+import CoreBluetooth
 import UIKit
 import WebKit
 
 final class MyViewController: UIViewController, WKScriptMessageHandler {
     private var webView: WKWebView!
     private var scriptHandler: WeakScriptMessageHandler!
+    private var webReady = false
+    private var pendingEvents: [[String: Any]] = []
     private lazy var printerManager = BluetoothPrinterManager { [weak self] event, data in
         self?.sendEvent(event, data: data)
     }
@@ -25,6 +28,9 @@ final class MyViewController: UIViewController, WKScriptMessageHandler {
             webView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
         ])
 
+        // Initialize CoreBluetooth at app startup so iOS can restore a previous connection.
+        _ = printerManager
+
         guard let publicDirectory = Bundle.main.resourceURL?.appendingPathComponent("public"),
               let indexURL = Bundle.main.url(forResource: "index", withExtension: "html", subdirectory: "public") else {
             assertionFailure("Missing bundled web dist. Run npm run native:sync first.")
@@ -41,7 +47,13 @@ final class MyViewController: UIViewController, WKScriptMessageHandler {
     func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
         guard message.name == "NativeBridge", let body = message.body as? [String: Any] else { return }
         if body["type"] as? String == "event" {
-            if body["event"] as? String == "pageReady" { sendEvent("native.ready", data: body["data"] ?? [:]) }
+            if body["event"] as? String == "pageReady" {
+                webReady = true
+                let events = pendingEvents
+                pendingEvents.removeAll()
+                events.forEach(sendToWeb)
+                sendEvent("native.ready", data: body["data"] ?? [:])
+            }
             return
         }
         guard body["type"] as? String == "call",
@@ -51,7 +63,9 @@ final class MyViewController: UIViewController, WKScriptMessageHandler {
         let completion: BluetoothPrinterManager.Completion = { [weak self] result in
             switch result {
             case .success(let data): self?.sendCallback(callbackId, data: data)
-            case .failure(let error): self?.sendCallback(callbackId, error: error.localizedDescription)
+            case .failure(let error):
+                if CBManager.authorization == .denied { self?.showBluetoothSettingsAlert() }
+                self?.sendCallback(callbackId, error: error.localizedDescription)
             }
         }
 
@@ -72,7 +86,24 @@ final class MyViewController: UIViewController, WKScriptMessageHandler {
     }
 
     private func sendEvent(_ event: String, data: Any) {
-        sendToWeb(["type": "event", "event": event, "data": data])
+        let message: [String: Any] = ["type": "event", "event": event, "data": data]
+        if webReady { sendToWeb(message) }
+        else { pendingEvents.append(message) }
+    }
+
+    private func showBluetoothSettingsAlert() {
+        guard presentedViewController == nil else { return }
+        let alert = UIAlertController(
+            title: "需要蓝牙权限",
+            message: "请前往系统设置，允许“效期标签”访问蓝牙后再搜索打印机。",
+            preferredStyle: .alert
+        )
+        alert.addAction(UIAlertAction(title: "取消", style: .cancel))
+        alert.addAction(UIAlertAction(title: "前往设置", style: .default) { _ in
+            guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
+            UIApplication.shared.open(url)
+        })
+        present(alert, animated: true)
     }
 
     private func sendToWeb(_ message: [String: Any]) {

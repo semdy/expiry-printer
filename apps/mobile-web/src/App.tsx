@@ -5,6 +5,7 @@ import gbkAddedTable from 'iconv-lite/encodings/tables/gbk-added.json';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { apiGet, apiSend } from './api';
 import { bytesToBase64, hasNativeBluetoothPrinter, NativeBluetoothPrinter, type NativeBluetoothDevice } from './bluetoothPrinter';
+import NativeBridge from './nativeBridge';
 
 type Tab = 'home' | 'print' | 'warning' | 'operation' | 'printer';
 
@@ -129,6 +130,43 @@ export default function App() {
 
   useEffect(() => {
     void Promise.all([loadMaterials(), loadOpened()]);
+  }, []);
+
+  useEffect(() => {
+    if (!hasNativeBluetoothPrinter()) return;
+
+    const removeRestoring = NativeBridge.on<NativeBluetoothDevice>('bluetooth.restoring', (device) => {
+      setPrinterName(device.name);
+      setBluetoothStatus('正在恢复连接');
+    });
+    const removeRestored = NativeBridge.on<NativeBluetoothDevice>('bluetooth.restored', (device) => {
+      bluetoothPrinter.current = { kind: 'native', name: device.name, deviceId: device.id };
+      setPrinterName(device.name);
+      setRecentPrinterName(device.name);
+      setRecentPrinterId(device.id);
+      setBluetoothConnected(true);
+      setBluetoothStatus('已连接');
+      window.localStorage.setItem(printerStorageKey, device.name);
+      window.localStorage.setItem(printerIdStorageKey, device.id);
+    });
+    const removeRestoreFailed = NativeBridge.on<{ error?: string }>('bluetooth.restoreFailed', (data) => {
+      bluetoothPrinter.current = null;
+      setBluetoothConnected(false);
+      setBluetoothStatus(data.error || '恢复连接失败');
+    });
+    const removeDisconnected = NativeBridge.on('bluetooth.disconnected', () => {
+      bluetoothPrinter.current = null;
+      setBluetoothConnected(false);
+      setBluetoothStatus('连接已断开');
+    });
+
+    NativeBridge.emit('pageReady');
+    return () => {
+      removeRestoring();
+      removeRestored();
+      removeRestoreFailed();
+      removeDisconnected();
+    };
   }, []);
 
   useEffect(() => {
