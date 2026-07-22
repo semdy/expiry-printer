@@ -624,15 +624,17 @@ export default function App() {
         </div>
       )}
       {notice && <div className={`local-toast local-toast-${notice.type}`}>{notice.content}</div>}
-      <Popup visible={devicePickerOpen} onMaskClick={() => setDevicePickerOpen(false)} bodyStyle={{ borderTopLeftRadius: 16, borderTopRightRadius: 16 }}>
+      <Popup visible={devicePickerOpen} onMaskClick={() => setDevicePickerOpen(false)} bodyStyle={{ height: '95%', borderTopLeftRadius: 16, borderTopRightRadius: 16 }}>
         <div className="device-picker">
           <h3>选择蓝牙打印机</h3>
-          {nativeDevices.map((device) => (
-            <button key={device.id} className="device-picker-item" onClick={() => { void connectNativeDevice(device); }}>
-              <strong>{device.name}</strong>
-              <span>{typeof device.rssi === 'number' ? `信号 ${device.rssi} dBm` : device.id}</span>
-            </button>
-          ))}
+          <div className="device-picker-content">
+            {nativeDevices.length > 0 ? nativeDevices.map((device) => (
+              <button key={device.id} className="device-picker-item" onClick={() => { void connectNativeDevice(device); }}>
+                <strong>{device.name}</strong>
+                <span>{typeof device.rssi === 'number' ? `信号 ${device.rssi} dBm` : device.id}</span>
+              </button>
+            )) : <div>未扫描到打印机设备</div>}
+          </div>
           <Button block onClick={() => setDevicePickerOpen(false)}>取消</Button>
         </div>
       </Popup>

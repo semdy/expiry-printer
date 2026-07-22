@@ -899,6 +899,19 @@ input[type="checkbox"] {
 
 .device-picker {
   padding: 18px 16px calc(18px + env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.device-picker-content {
+  flex: 1;
+  margin-left: -16px;
+  margin-right: -16px;
+  padding: 0 16px;
+  margin-bottom: 16px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .device-picker h3 {
