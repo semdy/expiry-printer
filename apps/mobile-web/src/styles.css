@@ -47,7 +47,7 @@ body {
 }
 
 .page {
-  padding: 14px 16px 0;
+  padding: 12px 12px 0;
 }
 
 .page-with-print-batch {
@@ -252,6 +252,10 @@ input[type='checkbox'] {
   border-radius: 8px;
 }
 
+.material-card:last-child {
+  margin-bottom: 0;
+}
+
 .material-card-check {
   width: 22px;
   padding-top: 2px;
@@ -413,6 +417,10 @@ input[type='checkbox'] {
   background: #fff;
   border: 1px solid #eaeaf0;
   border-radius: 8px;
+}
+
+.warning-row:last-child {
+  margin-bottom: 0;
 }
 
 .row-actions {
