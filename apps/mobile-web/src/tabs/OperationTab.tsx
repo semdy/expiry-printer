@@ -46,7 +46,7 @@ export default function OperationTab({
       {selectedIds.length > 0 && (
         <div className="batch-toolbar">
           <div className="batch-toolbar-info">
-            <span className="batch-toolbar-text">已选 {selectedIds.length} 项</span>
+            <span className="batch-toolbar-text">{t('已选 {count} 项', { count: selectedIds.length })}</span>
             <span className="batch-toolbar-clear" onClick={onSelectionClear}>
               取消
             </span>

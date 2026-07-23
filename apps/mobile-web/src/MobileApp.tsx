@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { apiGet, apiSend } from './api';
 import { hasNativeBluetoothPrinter, NativeBluetoothPrinter, type NativeBluetoothDevice } from './bluetoothPrinter';
 import { BatchPrintPopup, ScrapPopup } from './components/MobileViews';
+import LanguageSwitcher from './components/LanguageSwitcher';
 import { addLife, labelMaterialType, toggleId } from './materialUtils';
 import NativeBridge from './nativeBridge';
 import {
@@ -281,7 +282,7 @@ export default function MobileApp() {
     }
     const ok = await requestConfirm({
       title: '确认使用',
-      content: `确定要使用“${item.material.name}”吗？`,
+      content: t('确定要使用“{name}”吗？', { name: item.material.name }),
       confirmText: '确认使用'
     });
     if (!ok) return;
@@ -316,7 +317,11 @@ export default function MobileApp() {
     }
     const ok = await requestConfirm({
       title: '确认废弃',
-      content: `确定要废弃“${currentOpened.material.name}”吗？废弃数量：${quantity}${currentOpened.material.unit}`,
+      content: t('确定要废弃“{name}”吗？废弃数量：{quantity}{unit}', {
+        name: currentOpened.material.name,
+        quantity,
+        unit: currentOpened.material.unit
+      }),
       confirmText: '确认废弃'
     });
     if (!ok) return;
@@ -334,7 +339,7 @@ export default function MobileApp() {
     }
     const ok = await requestConfirm({
       title: '确认补打',
-      content: `确定要补打“${item.material.name}”的标签吗？默认补打 1 张。`,
+      content: t('确定要补打“{name}”的标签吗？默认补打 1 张。', { name: item.material.name }),
       confirmText: '确认补打'
     });
     if (!ok) return;
@@ -366,7 +371,7 @@ export default function MobileApp() {
     }
     const ok = await requestConfirm({
       title: '确认批量使用',
-      content: `确定要批量使用已选择的 ${rows.length} 个物料吗？`,
+      content: t('确定要批量使用已选择的 {count} 个物料吗？', { count: rows.length }),
       confirmText: '确认使用'
     });
     if (!ok) return;
@@ -384,7 +389,9 @@ export default function MobileApp() {
     }
     const ok = await requestConfirm({
       title: '确认批量废弃',
-      content: `确定要批量废弃已选择的 ${rows.length} 个物料吗？每个物料默认废弃数量为 1。`,
+      content: t('确定要批量废弃已选择的 {count} 个物料吗？每个物料默认废弃数量为 1。', {
+        count: rows.length
+      }),
       confirmText: '确认废弃'
     });
     if (!ok) return;
@@ -408,7 +415,9 @@ export default function MobileApp() {
     }
     const ok = await requestConfirm({
       title: '确认批量补打',
-      content: `确定要批量补打已选择的 ${rows.length} 个物料标签吗？每个物料默认补打 1 张。`,
+      content: t('确定要批量补打已选择的 {count} 个物料标签吗？每个物料默认补打 1 张。', {
+        count: rows.length
+      }),
       confirmText: '确认补打'
     });
     if (!ok) return;
@@ -484,7 +493,7 @@ export default function MobileApp() {
         nativeScanActive.current = false;
         if (!devices.length) throw new Error('未搜索到蓝牙设备，请确认打印机已开机');
         setNativeDevices(devices);
-        setBluetoothStatus(`发现 ${devices.length} 台设备`);
+        setBluetoothStatus(t('发现 {count} 台设备', { count: devices.length }));
       } catch (error) {
         nativeScanActive.current = false;
         setDevicePickerOpen(false);
@@ -508,7 +517,7 @@ export default function MobileApp() {
       setBluetoothConnected(true);
       setBluetoothStatus('已连接');
       window.localStorage.setItem(printerStorageKey, connection.name);
-      showNotice(`已连接蓝牙打印机：${connection.name}`, 'success');
+      showNotice(t('已连接蓝牙打印机：{name}', { name: connection.name }), 'success');
     } catch (error) {
       setBluetoothStatus('连接失败');
       showNotice(error instanceof Error ? error.message : '蓝牙打印机连接失败', 'warning');
@@ -532,7 +541,7 @@ export default function MobileApp() {
       setBluetoothStatus('已连接');
       window.localStorage.setItem(printerStorageKey, connected.name);
       window.localStorage.setItem(printerIdStorageKey, connected.id);
-      showNotice(`已连接蓝牙打印机：${connected.name}`, 'success');
+      showNotice(t('已连接蓝牙打印机：{name}', { name: connected.name }), 'success');
     } catch (error) {
       setBluetoothConnected(false);
       setBluetoothStatus('连接失败');
@@ -564,7 +573,7 @@ export default function MobileApp() {
       setBluetoothConnected(true);
       setBluetoothStatus('已连接');
       window.localStorage.setItem(printerStorageKey, connection.name);
-      showNotice(`已连接蓝牙打印机：${connection.name}`, 'success');
+      showNotice(t('已连接蓝牙打印机：{name}', { name: connection.name }), 'success');
     } catch (error) {
       setBluetoothStatus('快速连接失败');
       showNotice(error instanceof Error ? error.message : '快速连接失败，请重新搜索打印机', 'warning');
@@ -596,7 +605,11 @@ export default function MobileApp() {
 
   return (
     <div className="mobile-shell">
-      <NavBar back={tab === 'print' && printDetailMaterial ? '返回' : null} onBack={() => setPrintDetailMaterial(null)}>
+      <NavBar
+        back={tab === 'print' && printDetailMaterial ? '返回' : null}
+        right={<LanguageSwitcher />}
+        onBack={() => setPrintDetailMaterial(null)}
+      >
         {title}
       </NavBar>
       <main
@@ -688,7 +701,7 @@ export default function MobileApp() {
       {tab === 'print' && !printDetailMaterial && selectedMaterials.length > 0 && (
         <div className="print-batch-bar">
           <div className="print-batch-info">
-            <span className="print-batch-count">已选 {selectedMaterials.length} 项</span>
+            <span className="print-batch-count">{t('已选 {count} 项', { count: selectedMaterials.length })}</span>
             <button className="print-batch-clear" onClick={() => setSelectedMaterials([])}>
               取消
             </button>
@@ -762,7 +775,9 @@ export default function MobileApp() {
                   }}
                 >
                   <strong>{device.name}</strong>
-                  <span>{typeof device.rssi === 'number' ? `信号 ${device.rssi} dBm` : device.id}</span>
+                  <span>
+                    {typeof device.rssi === 'number' ? t('信号 {rssi} dBm', { rssi: device.rssi }) : device.id}
+                  </span>
                 </button>
               ))
             ) : (

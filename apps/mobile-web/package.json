@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite --host 127.0.0.1 --port 5174",
     "build": "tsc -b && vite build",
+    "i18n:extract": "extract-i18n",
     "preview": "vite preview --port 5174",
     "native:sync": "npm run build && node scripts/sync-native.mjs",
     "native:android": "npm run native:sync && open android",
@@ -14,12 +15,15 @@
   "dependencies": {
     "@vitejs/plugin-react": "^4.3.4",
     "antd-mobile": "^5.38.2",
+    "i18next": "^26.3.6",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "react-i18next": "^17.0.11"
   },
   "devDependencies": {
     "@types/react": "^19.0.2",
     "@types/react-dom": "^19.0.2",
+    "extract-i18n-plugin": "^1.1.45",
     "typescript": "^5.7.2",
     "vite": "^6.0.5"
   }

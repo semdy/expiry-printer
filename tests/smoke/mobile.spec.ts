@@ -100,6 +100,22 @@ function gbkHex(value: string) {
   return iconv.encode(value, 'gbk').toString('hex');
 }
 
+test('移动端支持切换英文并记住语言选择', async ({ page }) => {
+  await page.goto(MOBILE_URL);
+  await page.evaluate(() => window.localStorage.clear());
+  await page.reload();
+
+  const languageSwitcher = page.getByLabel('Language');
+  await expect(languageSwitcher).toHaveValue('zh-CN');
+  await languageSwitcher.selectOption('en');
+  await expect(page.getByText('Label Printing').first()).toBeVisible();
+  await expect(page.getByText('Printer Settings').first()).toBeVisible();
+
+  await page.reload();
+  await expect(languageSwitcher).toHaveValue('en');
+  await expect(page.getByText('Label Printing').first()).toBeVisible();
+});
+
 test('移动端未连接打印机时确认打印会提示并跳转打印机设置', async ({ page, request }) => {
   const material = await createMaterial(request, 'MNC');
 

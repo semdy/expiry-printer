@@ -14,6 +14,7 @@
     "native:sync": "npm --workspace apps/mobile-web run native:sync",
     "native:android": "npm --workspace apps/mobile-web run native:android",
     "native:ios": "npm --workspace apps/mobile-web run native:ios",
+    "i18n:extract": "npm --workspace apps/mobile-web run i18n:extract",
     "build": "npm run build --workspaces --if-present",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
