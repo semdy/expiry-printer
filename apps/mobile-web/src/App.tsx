@@ -104,6 +104,7 @@ export default function App() {
   const [recentPrinterName, setRecentPrinterName] = useState(() => window.localStorage.getItem(printerStorageKey) || '');
   const [recentPrinterId, setRecentPrinterId] = useState(() => window.localStorage.getItem(printerIdStorageKey) || '');
   const [nativeDevices, setNativeDevices] = useState<NativeBluetoothDevice[]>([]);
+  const [deviceNameKeyword, setDeviceNameKeyword] = useState('');
   const [devicePickerOpen, setDevicePickerOpen] = useState(false);
   const [bluetoothConnected, setBluetoothConnected] = useState(false);
   const [bluetoothStatus, setBluetoothStatus] = useState('未连接');
@@ -113,6 +114,11 @@ export default function App() {
   const nativeScanActive = useRef(false);
 
   const title = tab === 'print' && printDetailMaterial ? '打印明细' : { home: '应用中心', print: '标签打印', warning: '效期预警', operation: '物料操作', printer: '打印机设置' }[tab];
+  const filteredNativeDevices = useMemo(() => {
+    const keyword = deviceNameKeyword.trim().toLocaleLowerCase();
+    if (!keyword) return nativeDevices;
+    return nativeDevices.filter((device) => device.name.toLocaleLowerCase().includes(keyword));
+  }, [nativeDevices, deviceNameKeyword]);
   const categories = useMemo(() => ['all', ...Array.from(new Set(materials.map((item) => item.category)))], [materials]);
   const filteredMaterials = useMemo(() => materials.filter((item) => {
     const keywordHit = !materialKeyword || item.name.includes(materialKeyword) || item.code.includes(materialKeyword);
@@ -451,6 +457,7 @@ export default function App() {
     if (hasNativeBluetoothPrinter()) {
       nativeScanActive.current = true;
       setNativeDevices([]);
+      setDeviceNameKeyword('');
       setDevicePickerOpen(true);
       try {
         setBluetoothStatus('搜索中');
@@ -617,7 +624,8 @@ export default function App() {
             {filteredOpened.map((item) => <OpenedOperationCard key={item.id} item={item} checked={selectedOpened.includes(item.id)} onToggle={() => toggleId(selectedOpened, setSelectedOpened, item.id)} onUse={useOpened} onScrap={openScrap} onReprint={reprintOpened} />)}
           </>
         )}
-        {tab === 'printer' && <PrinterSettings printerName={printerName} recentPrinterName={recentPrinterName} bluetoothConnected={bluetoothConnected} bluetoothStatus={bluetoothStatus} onQuickConnect={() => { void quickConnectBluetoothPrinter(); }} onDisconnect={() => { void disconnectBluetoothPrinter(); }} onConnectBluetooth={() => { void connectBluetoothPrinter(); }} />}
+        {tab === 'printer' && <PrinterSettings printerName={printerName} recentPrinterName={recentPrinterName} bluetoothConnected={bluetoothConnected} bluetoothStatus={bluetoothStatus} nativeDevicesNum={nativeDevices.length}
+        setDevicePickerOpen={setDevicePickerOpen} onQuickConnect={() => { void quickConnectBluetoothPrinter(); }} onDisconnect={() => { void disconnectBluetoothPrinter(); }} onConnectBluetooth={() => { void connectBluetoothPrinter(); }} />}
       </main>
       <TabBar activeKey={tab} onChange={(key) => changeTab(key as Tab)}>
         <TabBar.Item key="print" icon={<AppOutline />} title="标签打印" />
@@ -669,13 +677,19 @@ export default function App() {
       <Popup visible={devicePickerOpen} onMaskClick={() => setDevicePickerOpen(false)} bodyStyle={{ height: '95%', borderTopLeftRadius: 16, borderTopRightRadius: 16 }}>
         <div className="device-picker">
           <h3>选择蓝牙打印机</h3>
+          <SearchBar
+            className="device-picker-search"
+            value={deviceNameKeyword}
+            onChange={setDeviceNameKeyword}
+            placeholder="按蓝牙名称搜索"
+          />
           <div className="device-picker-content">
-            {nativeDevices.length > 0 ? nativeDevices.map((device) => (
+            {filteredNativeDevices.length > 0 ? filteredNativeDevices.map((device) => (
               <button key={device.id} className="device-picker-item" onClick={() => { void connectNativeDevice(device); }}>
                 <strong>{device.name}</strong>
                 <span>{typeof device.rssi === 'number' ? `信号 ${device.rssi} dBm` : device.id}</span>
               </button>
-            )) : <div>正在搜索附近的蓝牙设备…</div>}
+            )) : <div>{nativeDevices.length > 0 ? '没有匹配的蓝牙设备' : '正在搜索附近的蓝牙设备…'}</div>}
           </div>
           <Button block onClick={() => setDevicePickerOpen(false)}>取消</Button>
         </div>
@@ -909,6 +923,8 @@ function PrinterSettings({
   recentPrinterName,
   bluetoothConnected,
   bluetoothStatus,
+  nativeDevicesNum,
+  setDevicePickerOpen,
   onQuickConnect,
   onDisconnect,
   onConnectBluetooth
@@ -917,10 +933,19 @@ function PrinterSettings({
   recentPrinterName: string;
   bluetoothConnected: boolean;
   bluetoothStatus: string;
+  nativeDevicesNum: number;
+  setDevicePickerOpen: (open: boolean) => void
   onQuickConnect: () => void;
   onDisconnect: () => void;
   onConnectBluetooth: () => void;
-}) {
+  }) {
+
+  function showDevices() {
+    if (nativeDevicesNum > 0) {
+      setDevicePickerOpen(true)
+    }
+  }
+
   return <div className="printer-settings">
     <section className="panel printer-panel">
       <div className="printer-section-title">当前连接设备</div>
@@ -950,7 +975,7 @@ function PrinterSettings({
 
       <div className="printer-form">
         <Button color="primary" block onClick={onConnectBluetooth}>搜索并连接蓝牙打印机</Button>
-        <div className="bluetooth-status">
+        <div className="bluetooth-status" onClick={showDevices}>
           <span>蓝牙连接状态</span>
           <strong>{bluetoothConnected ? '已连接' : bluetoothStatus}</strong>
         </div>

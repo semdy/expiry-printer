@@ -919,6 +919,10 @@ input[type="checkbox"] {
   font-size: 18px;
 }
 
+.device-picker-search {
+  margin-bottom: 12px;
+}
+
 .device-picker-item {
   width: 100%;
   display: flex;
