@@ -24,6 +24,13 @@
 	<true/>
 	<key>NSBluetoothAlwaysUsageDescription</key>
 	<string>用于搜索、连接蓝牙标签打印机并发送标签打印数据。</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>用于连接局域网内的效期标签业务服务。</string>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoadsInWebContent</key>
+		<true/>
+	</dict>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>bluetooth-central</string>
