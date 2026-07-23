@@ -885,7 +885,7 @@ input[type="checkbox"] {
   border: 0;
   background: #fff;
   font-size: 15px;
-  font-weight: 600;
+  font-weight: bold;
 }
 
 .action-confirm-cancel {
