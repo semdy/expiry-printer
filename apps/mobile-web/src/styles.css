@@ -584,10 +584,10 @@ input[type='checkbox'] {
 }
 
 .form-label {
-  margin-bottom: 8px;
+  display: block;
+  margin-bottom: 5px;
   color: #4e5969;
   font-size: 14px;
-  font-weight: bold;
 }
 
 .batch-print-list {
@@ -694,7 +694,6 @@ input[type='checkbox'] {
   border-radius: 8px;
   color: #1d2129;
   font-size: 16px;
-  font-weight: bold;
 }
 
 .scrap-input:focus,
@@ -706,7 +705,6 @@ input[type='checkbox'] {
 .scrap-unit {
   color: #4e5969;
   font-size: 14px;
-  font-weight: bold;
 }
 
 .scrap-textarea {
