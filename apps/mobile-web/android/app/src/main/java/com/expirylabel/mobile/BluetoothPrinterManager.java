@@ -87,6 +87,7 @@ final class BluetoothPrinterManager {
             @Override
             public void onScanResult(int callbackType, ScanResult result) {
                 BluetoothDevice device = result.getDevice();
+                boolean firstDiscovery = !discoveredDevices.containsKey(device.getAddress());
                 String name = device.getName();
                 if (name == null || name.trim().isEmpty()) name = "未命名蓝牙设备";
                 JSONObject item = new JSONObject();
@@ -95,6 +96,7 @@ final class BluetoothPrinterManager {
                     item.put("name", name);
                     item.put("rssi", result.getRssi());
                     discoveredDevices.put(device.getAddress(), item);
+                    if (firstDiscovery) eventEmitter.emit("bluetooth.deviceDiscovered", item);
                 } catch (Exception ignored) {
                     // Primitive Bluetooth device fields are always serializable.
                 }
@@ -145,6 +147,7 @@ final class BluetoothPrinterManager {
             return;
         }
         try {
+            finishScan(null);
             disconnectGatt();
             restoringConnection = false;
             BluetoothDevice device = adapter.getRemoteDevice(deviceId);

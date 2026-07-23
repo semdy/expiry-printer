@@ -53,6 +53,7 @@ type BluetoothPrinterDevice = {
         getCharacteristics: () => Promise<WritableBluetoothCharacteristic[]>;
       }>;
     }>;
+    disconnect?: () => void;
   };
 };
 
@@ -109,6 +110,7 @@ export default function App() {
   const [notice, setNotice] = useState<{ content: string; type?: 'success' | 'warning' } | null>(null);
   const noticeTimer = useRef<number | null>(null);
   const bluetoothPrinter = useRef<BluetoothPrinterConnection | null>(null);
+  const nativeScanActive = useRef(false);
 
   const title = tab === 'print' && printDetailMaterial ? '打印明细' : { home: '应用中心', print: '标签打印', warning: '效期预警', operation: '物料操作', printer: '打印机设置' }[tab];
   const categories = useMemo(() => ['all', ...Array.from(new Set(materials.map((item) => item.category)))], [materials]);
@@ -159,6 +161,15 @@ export default function App() {
       setBluetoothConnected(false);
       setBluetoothStatus('连接已断开');
     });
+    const removeDeviceDiscovered = NativeBridge.on<NativeBluetoothDevice>('bluetooth.deviceDiscovered', (device) => {
+      if (!nativeScanActive.current) return;
+      setNativeDevices((current) => {
+        const existingIndex = current.findIndex((item) => item.id === device.id);
+        if (existingIndex < 0) return [...current, device];
+        return current.map((item, index) => index === existingIndex ? device : item);
+      });
+      setBluetoothStatus('发现设备，仍在搜索');
+    });
 
     NativeBridge.emit('pageReady');
     return () => {
@@ -166,6 +177,7 @@ export default function App() {
       removeRestored();
       removeRestoreFailed();
       removeDisconnected();
+      removeDeviceDiscovered();
     };
   }, []);
 
@@ -437,14 +449,20 @@ export default function App() {
 
   async function connectBluetoothPrinter() {
     if (hasNativeBluetoothPrinter()) {
+      nativeScanActive.current = true;
+      setNativeDevices([]);
+      setDevicePickerOpen(true);
       try {
         setBluetoothStatus('搜索中');
         const { devices } = await NativeBluetoothPrinter.scan({ serviceUuids: bluetoothServiceUuids, timeoutMs: 5000 });
+        if (!nativeScanActive.current) return;
+        nativeScanActive.current = false;
         if (!devices.length) throw new Error('未搜索到蓝牙设备，请确认打印机已开机');
         setNativeDevices(devices);
-        setDevicePickerOpen(true);
         setBluetoothStatus(`发现 ${devices.length} 台设备`);
       } catch (error) {
+        nativeScanActive.current = false;
+        setDevicePickerOpen(false);
         setBluetoothStatus('搜索失败');
         showNotice(error instanceof Error ? error.message : '蓝牙设备搜索失败', 'warning');
       }
@@ -473,6 +491,7 @@ export default function App() {
   }
 
   async function connectNativeDevice(device: NativeBluetoothDevice) {
+    nativeScanActive.current = false;
     setDevicePickerOpen(false);
     setBluetoothStatus('连接中');
     try {
@@ -521,6 +540,29 @@ export default function App() {
     } catch (error) {
       setBluetoothStatus('快速连接失败');
       showNotice(error instanceof Error ? error.message : '快速连接失败，请重新搜索打印机', 'warning');
+    }
+  }
+
+  async function disconnectBluetoothPrinter() {
+    const connection = bluetoothPrinter.current;
+    if (!connection) {
+      setBluetoothConnected(false);
+      setBluetoothStatus('未连接');
+      return;
+    }
+
+    try {
+      setBluetoothStatus('断开中');
+      if (connection.kind === 'native') await NativeBluetoothPrinter.disconnect();
+      else connection.device.gatt?.disconnect?.();
+      bluetoothPrinter.current = null;
+      setPrinterName('');
+      setBluetoothConnected(false);
+      setBluetoothStatus('未连接');
+      showNotice('已断开蓝牙打印机', 'success');
+    } catch (error) {
+      setBluetoothStatus('断开失败');
+      showNotice(error instanceof Error ? error.message : '断开蓝牙打印机失败', 'warning');
     }
   }
 
@@ -575,7 +617,7 @@ export default function App() {
             {filteredOpened.map((item) => <OpenedOperationCard key={item.id} item={item} checked={selectedOpened.includes(item.id)} onToggle={() => toggleId(selectedOpened, setSelectedOpened, item.id)} onUse={useOpened} onScrap={openScrap} onReprint={reprintOpened} />)}
           </>
         )}
-        {tab === 'printer' && <PrinterSettings printerName={printerName} recentPrinterName={recentPrinterName} bluetoothConnected={bluetoothConnected} bluetoothStatus={bluetoothStatus} onQuickConnect={() => { void quickConnectBluetoothPrinter(); }} onConnectBluetooth={() => { void connectBluetoothPrinter(); }} />}
+        {tab === 'printer' && <PrinterSettings printerName={printerName} recentPrinterName={recentPrinterName} bluetoothConnected={bluetoothConnected} bluetoothStatus={bluetoothStatus} onQuickConnect={() => { void quickConnectBluetoothPrinter(); }} onDisconnect={() => { void disconnectBluetoothPrinter(); }} onConnectBluetooth={() => { void connectBluetoothPrinter(); }} />}
       </main>
       <TabBar activeKey={tab} onChange={(key) => changeTab(key as Tab)}>
         <TabBar.Item key="print" icon={<AppOutline />} title="标签打印" />
@@ -633,7 +675,7 @@ export default function App() {
                 <strong>{device.name}</strong>
                 <span>{typeof device.rssi === 'number' ? `信号 ${device.rssi} dBm` : device.id}</span>
               </button>
-            )) : <div>未扫描到打印机设备</div>}
+            )) : <div>正在搜索附近的蓝牙设备…</div>}
           </div>
           <Button block onClick={() => setDevicePickerOpen(false)}>取消</Button>
         </div>
@@ -868,6 +910,7 @@ function PrinterSettings({
   bluetoothConnected,
   bluetoothStatus,
   onQuickConnect,
+  onDisconnect,
   onConnectBluetooth
 }: {
   printerName: string;
@@ -875,6 +918,7 @@ function PrinterSettings({
   bluetoothConnected: boolean;
   bluetoothStatus: string;
   onQuickConnect: () => void;
+  onDisconnect: () => void;
   onConnectBluetooth: () => void;
 }) {
   return <div className="printer-settings">
@@ -894,7 +938,14 @@ function PrinterSettings({
           <strong>{recentPrinterName || '暂无最近设备'}</strong>
           <div className="material-desc">已授权设备可尝试快速连接</div>
         </div>
-        <Button size="small" disabled={!recentPrinterName} onClick={onQuickConnect}>快速连接</Button>
+        <Button
+          size="small"
+          color={bluetoothConnected ? 'danger' : 'default'}
+          disabled={!bluetoothConnected && !recentPrinterName}
+          onClick={bluetoothConnected ? onDisconnect : onQuickConnect}
+        >
+          {bluetoothConnected ? '断开连接' : '快速连接'}
+        </Button>
       </div>
 
       <div className="printer-form">

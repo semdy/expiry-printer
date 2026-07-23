@@ -9,6 +9,7 @@ async function installMockBluetooth(page: Page, deviceName = 'Mock BLE Printer')
     (window as any).__bluetoothWrites = [];
     (window as any).__bluetoothBytes = [];
     (window as any).__bluetoothWriteSizes = [];
+    (window as any).__bluetoothDisconnects = 0;
     const encoder = new TextDecoder();
     const characteristic = {
       properties: { writeWithoutResponse: true },
@@ -26,6 +27,7 @@ async function installMockBluetooth(page: Page, deviceName = 'Mock BLE Printer')
     const device = {
       name,
       gatt: {
+        disconnect: () => { (window as any).__bluetoothDisconnects += 1; },
         connect: async () => ({
           getPrimaryService: async () => ({
             getCharacteristics: async () => [characteristic]
@@ -317,6 +319,10 @@ test('移动端打印机设置只展示蓝牙连接信息和最近设备快速�
   await expect(page.getByRole('button', { name: '连接/保存打印机' })).not.toBeVisible();
   await page.getByRole('button', { name: '快速连接' }).click();
   await expect(page.locator('.bluetooth-status').getByText('已连接')).toBeVisible();
+  await page.getByRole('button', { name: '断开连接' }).click();
+  await expect(page.locator('.bluetooth-status').getByText('未连接')).toBeVisible();
+  await expect(page.getByRole('button', { name: '快速连接' })).toBeVisible();
+  await expect.poll(() => page.evaluate(() => (window as any).__bluetoothDisconnects)).toBe(1);
 });
 
 test('移动端打印机设置可以连接蓝牙打印机并发送标签指令', async ({ page, request }) => {

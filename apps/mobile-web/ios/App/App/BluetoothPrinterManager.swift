@@ -96,6 +96,7 @@ final class BluetoothPrinterManager: NSObject, CBCentralManagerDelegate, CBPerip
                 completion(.failure(self.error("找不到已选择的蓝牙设备，请重新搜索")))
                 return
             }
+            self.finishScan(error: nil)
             self.disconnectCurrent()
             self.connectCompletion = completion
             self.connectedPeripheral = peripheral
@@ -177,7 +178,15 @@ final class BluetoothPrinterManager: NSObject, CBCentralManagerDelegate, CBPerip
                         advertisementData: [String: Any], rssi RSSI: NSNumber) {
         let name = peripheral.name ?? advertisementData[CBAdvertisementDataLocalNameKey] as? String
         guard name != nil else { return }
+        let firstDiscovery = discovered[peripheral.identifier] == nil
         discovered[peripheral.identifier] = (peripheral, RSSI.intValue)
+        if firstDiscovery {
+            eventEmitter("bluetooth.deviceDiscovered", [
+                "id": peripheral.identifier.uuidString,
+                "name": name ?? "未命名蓝牙设备",
+                "rssi": RSSI.intValue
+            ])
+        }
     }
 
     func centralManager(_ central: CBCentralManager, didConnect peripheral: CBPeripheral) {
