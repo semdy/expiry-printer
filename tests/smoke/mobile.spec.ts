@@ -27,7 +27,9 @@ async function installMockBluetooth(page: Page, deviceName = 'Mock BLE Printer')
     const device = {
       name,
       gatt: {
-        disconnect: () => { (window as any).__bluetoothDisconnects += 1; },
+        disconnect: () => {
+          (window as any).__bluetoothDisconnects += 1;
+        },
         connect: async () => ({
           getPrimaryService: async () => ({
             getCharacteristics: async () => [characteristic]
@@ -89,7 +91,9 @@ function bluetoothCommand(page: Page) {
 }
 
 function bluetoothHex(page: Page) {
-  return page.evaluate(() => Array.from((window as any).__bluetoothBytes, (byte: number) => byte.toString(16).padStart(2, '0')).join(''));
+  return page.evaluate(() =>
+    Array.from((window as any).__bluetoothBytes, (byte: number) => byte.toString(16).padStart(2, '0')).join('')
+  );
 }
 
 function gbkHex(value: string) {
@@ -350,7 +354,9 @@ test('移动端打印机设置可以连接蓝牙打印机并发送标签指令',
   await expect.poll(() => bluetoothCommand(page)).not.toContain('CODEPAGE UTF-8');
   await expect.poll(() => bluetoothCommand(page)).not.toContain('QRCODE');
   await expect.poll(() => bluetoothCommand(page)).not.toContain('BITMAP');
-  await expect.poll(() => page.evaluate(() => Math.max(...(window as any).__bluetoothWriteSizes))).toBeLessThanOrEqual(180);
+  await expect
+    .poll(() => page.evaluate(() => Math.max(...(window as any).__bluetoothWriteSizes)))
+    .toBeLessThanOrEqual(180);
   await expect.poll(() => page.evaluate(() => (window as any).__bluetoothBytes.length)).toBeLessThan(800);
 });
 

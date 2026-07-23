@@ -52,32 +52,34 @@ async function main() {
 
   const createdMaterials = [];
   for (const item of materials) {
-    createdMaterials.push(await prisma.material.upsert({
-      where: { code: item[0] },
-      update: {
-        name: item[1],
-        category: item[2],
-        type: item[3],
-        unit: item[4],
-        shelfLifeValue: item[5],
-        shelfLifeUnit: item[6],
-        openedLifeValue: item[7],
-        openedLifeUnit: item[8],
-        status: 'enabled'
-      },
-      create: {
-        code: item[0],
-        name: item[1],
-        category: item[2],
-        type: item[3],
-        unit: item[4],
-        shelfLifeValue: item[5],
-        shelfLifeUnit: item[6],
-        openedLifeValue: item[7],
-        openedLifeUnit: item[8],
-        status: 'enabled'
-      }
-    }));
+    createdMaterials.push(
+      await prisma.material.upsert({
+        where: { code: item[0] },
+        update: {
+          name: item[1],
+          category: item[2],
+          type: item[3],
+          unit: item[4],
+          shelfLifeValue: item[5],
+          shelfLifeUnit: item[6],
+          openedLifeValue: item[7],
+          openedLifeUnit: item[8],
+          status: 'enabled'
+        },
+        create: {
+          code: item[0],
+          name: item[1],
+          category: item[2],
+          type: item[3],
+          unit: item[4],
+          shelfLifeValue: item[5],
+          shelfLifeUnit: item[6],
+          openedLifeValue: item[7],
+          openedLifeUnit: item[8],
+          status: 'enabled'
+        }
+      })
+    );
   }
 
   const milk = createdMaterials.find((item) => item.code === 'MAT001')!;

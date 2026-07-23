@@ -27,7 +27,11 @@ export function uniqueCode(prefix: string) {
   return `${prefix}${Date.now()}${Math.floor(Math.random() * 1000)}`;
 }
 
-export async function createMaterial(request: APIRequestContext, prefix = 'SMOKE', overrides: Partial<Omit<TestMaterial, 'id'>> = {}) {
+export async function createMaterial(
+  request: APIRequestContext,
+  prefix = 'SMOKE',
+  overrides: Partial<Omit<TestMaterial, 'id'>> = {}
+) {
   const code = uniqueCode(prefix);
   const response = await request.post(`${API_URL}/api/materials`, {
     data: {
@@ -73,7 +77,11 @@ export async function printMaterial(request: APIRequestContext, materialId: numb
   return response.json() as Promise<{ openedMaterial: TestOpenedMaterial }>;
 }
 
-export async function updateMaterialStatus(request: APIRequestContext, materialId: number, status: TestMaterial['status']) {
+export async function updateMaterialStatus(
+  request: APIRequestContext,
+  materialId: number,
+  status: TestMaterial['status']
+) {
   const response = await request.patch(`${API_URL}/api/materials/${materialId}/status`, {
     data: { status }
   });
@@ -81,7 +89,11 @@ export async function updateMaterialStatus(request: APIRequestContext, materialI
   return response.json() as Promise<TestMaterial>;
 }
 
-export async function batchUpdateMaterialStatus(request: APIRequestContext, ids: number[], status: TestMaterial['status']) {
+export async function batchUpdateMaterialStatus(
+  request: APIRequestContext,
+  ids: number[],
+  status: TestMaterial['status']
+) {
   const response = await request.post(`${API_URL}/api/materials/batch-status`, {
     data: { ids, status }
   });

@@ -120,7 +120,11 @@ test('后台物料配置页面固定，仅表格行区域滚动', async ({ page,
     expect(metrics.documentHeight).toBeLessThanOrEqual(metrics.viewportHeight + 2);
     expect(metrics.tableScrollHeight).toBeGreaterThan(metrics.tableClientHeight + 20);
   } finally {
-    await batchUpdateMaterialStatus(request, rows.map((row) => row.id), 'deleted');
+    await batchUpdateMaterialStatus(
+      request,
+      rows.map((row) => row.id),
+      'deleted'
+    );
   }
 });
 

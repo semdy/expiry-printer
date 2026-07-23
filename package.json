@@ -15,6 +15,8 @@
     "native:android": "npm --workspace apps/mobile-web run native:android",
     "native:ios": "npm --workspace apps/mobile-web run native:ios",
     "build": "npm run build --workspaces --if-present",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "lint": "npm run lint --workspaces --if-present",
     "test:smoke": "playwright test",
     "test:smoke:headed": "playwright test --headed",
@@ -24,7 +26,8 @@
     "seed": "npm --workspace apps/server run seed"
   },
   "devDependencies": {
-    "@playwright/test": "^1.61.1"
+    "@playwright/test": "^1.61.1",
+    "prettier": "^3.9.6"
   },
   "allowScripts": {
     "@prisma/client@5.22.0": true,

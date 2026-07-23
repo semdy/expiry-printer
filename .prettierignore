@@ -1,0 +1,12 @@
+node_modules
+dist
+coverage
+playwright-report
+test-results
+
+apps/mobile-web/android
+apps/mobile-web/ios
+
+references
+mobile
+web

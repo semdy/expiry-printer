@@ -64,7 +64,12 @@ export default function App() {
   const [configs, setConfigs] = useState<ConfigItem[]>([]);
   const [dashboard, setDashboard] = useState<any>(emptyDashboard);
   const [materialQuery, setMaterialQuery] = useState({ keyword: '', category: '', type: '', status: '' });
-  const [dashboardQuery, setDashboardQuery] = useState<DashboardQuery>({ status: '', startAt: '', endAt: '', preset: '' });
+  const [dashboardQuery, setDashboardQuery] = useState<DashboardQuery>({
+    status: '',
+    startAt: '',
+    endAt: '',
+    preset: ''
+  });
   const [printLogQuery, setPrintLogQuery] = useState<LogQuery>({ startAt: '', endAt: '', preset: '' });
   const [scrapLogQuery, setScrapLogQuery] = useState<LogQuery>({ startAt: '', endAt: '', preset: '' });
   const [configKind, setConfigKind] = useState<ConfigKind>('category');
@@ -75,19 +80,40 @@ export default function App() {
   const [editingMaterial, setEditingMaterial] = useState<Material | null>(null);
   const [editingConfig, setEditingConfig] = useState<ConfigItem | null>(null);
   const [selectedMaterialIds, setSelectedMaterialIds] = useState<number[]>([]);
-  const [confirmAction, setConfirmAction] = useState<null | { title: string; content: string; okText: string; danger?: boolean; onOk: () => Promise<void> }>(null);
+  const [confirmAction, setConfirmAction] = useState<null | {
+    title: string;
+    content: string;
+    okText: string;
+    danger?: boolean;
+    onOk: () => Promise<void>;
+  }>(null);
   const [confirmLoading, setConfirmLoading] = useState(false);
   const [materialForm] = Form.useForm();
   const [configForm] = Form.useForm();
   const importInputRef = useRef<HTMLInputElement | null>(null);
 
-  const categories = useMemo(() => configs.filter((item) => item.kind === 'category' && item.status === 'enabled'), [configs]);
+  const categories = useMemo(
+    () => configs.filter((item) => item.kind === 'category' && item.status === 'enabled'),
+    [configs]
+  );
   const types = useMemo(() => configs.filter((item) => item.kind === 'type' && item.status === 'enabled'), [configs]);
   const units = useMemo(() => configs.filter((item) => item.kind === 'unit' && item.status === 'enabled'), [configs]);
-  const warningOpened = useMemo(() => dashboard.openedMaterials.filter((item: any) => ['warning', 'expired'].includes(item.computedStatus)), [dashboard]);
-  const selectedMaterials = useMemo(() => materials.filter((item) => selectedMaterialIds.includes(item.id)), [materials, selectedMaterialIds]);
-  const selectedEnabledMaterials = useMemo(() => selectedMaterials.filter((item) => item.status === 'enabled'), [selectedMaterials]);
-  const selectedDisabledMaterials = useMemo(() => selectedMaterials.filter((item) => item.status === 'disabled'), [selectedMaterials]);
+  const warningOpened = useMemo(
+    () => dashboard.openedMaterials.filter((item: any) => ['warning', 'expired'].includes(item.computedStatus)),
+    [dashboard]
+  );
+  const selectedMaterials = useMemo(
+    () => materials.filter((item) => selectedMaterialIds.includes(item.id)),
+    [materials, selectedMaterialIds]
+  );
+  const selectedEnabledMaterials = useMemo(
+    () => selectedMaterials.filter((item) => item.status === 'enabled'),
+    [selectedMaterials]
+  );
+  const selectedDisabledMaterials = useMemo(
+    () => selectedMaterials.filter((item) => item.status === 'disabled'),
+    [selectedMaterials]
+  );
 
   useEffect(() => {
     void Promise.all([loadConfigs(), loadMaterials(), loadDashboard()]);
@@ -125,19 +151,21 @@ export default function App() {
 
   function openMaterial(row?: Material) {
     setEditingMaterial(row || null);
-    materialForm.setFieldsValue(row || {
-      code: '',
-      name: '',
-      category: '原料',
-      type: '冷藏',
-      unit: '盒',
-      shelfLifeValue: 1,
-      shelfLifeUnit: 'days',
-      openedLifeValue: 1,
-      openedLifeUnit: 'days',
-      status: 'enabled',
-      remark: ''
-    });
+    materialForm.setFieldsValue(
+      row || {
+        code: '',
+        name: '',
+        category: '原料',
+        type: '冷藏',
+        unit: '盒',
+        shelfLifeValue: 1,
+        shelfLifeUnit: 'days',
+        openedLifeValue: 1,
+        openedLifeUnit: 'days',
+        status: 'enabled',
+        remark: ''
+      }
+    );
     setMaterialOpen(true);
   }
 
@@ -188,16 +216,20 @@ export default function App() {
       return;
     }
     const actionText = status === 'enabled' ? '启用' : status === 'disabled' ? '禁用' : '删除';
-    const content = status === 'deleted'
-      ? `确定要批量删除已选择的 ${rows.length} 个物料吗？删除后将不在物料配置列表中显示。`
-      : `确定要批量${actionText}已选择的 ${rows.length} 个${status === 'enabled' ? '禁用' : '启用'}状态物料吗？`;
+    const content =
+      status === 'deleted'
+        ? `确定要批量删除已选择的 ${rows.length} 个物料吗？删除后将不在物料配置列表中显示。`
+        : `确定要批量${actionText}已选择的 ${rows.length} 个${status === 'enabled' ? '禁用' : '启用'}状态物料吗？`;
     setConfirmAction({
       title: `确认批量${actionText}物料`,
       content,
       okText: `确认${actionText}`,
       danger: status !== 'enabled',
       async onOk() {
-        const result = await apiSend<{ count: number }>('/api/materials/batch-status', 'POST', { ids: rows.map((item) => item.id), status });
+        const result = await apiSend<{ count: number }>('/api/materials/batch-status', 'POST', {
+          ids: rows.map((item) => item.id),
+          status
+        });
         message.success(`批量${actionText}成功，共处理 ${result.count} 条`);
         setSelectedMaterialIds([]);
         await Promise.all([loadMaterials(), loadDashboard()]);
@@ -211,10 +243,46 @@ export default function App() {
   }
 
   function downloadMaterialTemplate() {
-    const headers = ['物料编码', '物料名称', '物料分类', '物料类型', '规格单位', '保质期数值', '保质期单位', '开封效期数值', '开封效期单位', '状态', '备注'];
+    const headers = [
+      '物料编码',
+      '物料名称',
+      '物料分类',
+      '物料类型',
+      '规格单位',
+      '保质期数值',
+      '保质期单位',
+      '开封效期数值',
+      '开封效期单位',
+      '状态',
+      '备注'
+    ];
     const sampleRows = [
-      ['MAT001', '牛奶', categories[0]?.name || '原料', types[0]?.name || '冷藏', units[0]?.name || '盒', 7, '天', 24, '小时', '启用', '示例行，可删除后填写'],
-      ['MAT002', '面包', categories[1]?.name || categories[0]?.name || '成品', types[1]?.name || types[0]?.name || '常温', units[1]?.name || units[0]?.name || '个', 3, '天', 12, '小时', '启用', '']
+      [
+        'MAT001',
+        '牛奶',
+        categories[0]?.name || '原料',
+        types[0]?.name || '冷藏',
+        units[0]?.name || '盒',
+        7,
+        '天',
+        24,
+        '小时',
+        '启用',
+        '示例行，可删除后填写'
+      ],
+      [
+        'MAT002',
+        '面包',
+        categories[1]?.name || categories[0]?.name || '成品',
+        types[1]?.name || types[0]?.name || '常温',
+        units[1]?.name || units[0]?.name || '个',
+        3,
+        '天',
+        12,
+        '小时',
+        '启用',
+        ''
+      ]
     ];
     const workbook = XLSX.utils.book_new();
     const materialSheet = XLSX.utils.aoa_to_sheet([headers, ...sampleRows]);
@@ -241,7 +309,8 @@ export default function App() {
     const buffer = await file.arrayBuffer();
     const workbook = XLSX.read(buffer, { type: 'array' });
     const sheet = workbook.Sheets[workbook.SheetNames[0]];
-    const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: '' })
+    const rows = XLSX.utils
+      .sheet_to_json<Record<string, unknown>>(sheet, { defval: '' })
       .filter((row) => ['物料编码', '物料名称', '物料分类', '物料类型', '规格单位'].some((key) => cellText(row[key])));
     const errors: string[] = [];
     const materials: MaterialImportRow[] = [];
@@ -266,9 +335,17 @@ export default function App() {
       return;
     }
 
-    const result = await apiSend<{ created: number; updated: number; failed: number; errors: Array<{ row: number; message: string }> }>('/api/materials/import', 'POST', { materials });
+    const result = await apiSend<{
+      created: number;
+      updated: number;
+      failed: number;
+      errors: Array<{ row: number; message: string }>;
+    }>('/api/materials/import', 'POST', { materials });
     if (result.failed) {
-      Modal.warning({ title: '部分导入失败', content: <ImportErrorList errors={result.errors.map((item) => `第 ${item.row} 行：${item.message}`)} /> });
+      Modal.warning({
+        title: '部分导入失败',
+        content: <ImportErrorList errors={result.errors.map((item) => `第 ${item.row} 行：${item.message}`)} />
+      });
     } else {
       message.success(`导入完成：新增 ${result.created} 条，更新 ${result.updated} 条`);
       setImportOpen(false);
@@ -348,7 +425,14 @@ export default function App() {
     { title: '开封效期', render: (_, row) => `${row.openedLifeValue}${unitText(row.openedLifeUnit)}` },
     { title: '状态', render: (_, row) => <StatusTag status={row.status} /> },
     { title: '创建时间', render: (_, row) => formatShortDate(row.createdAt) },
-    { title: '操作', width: 90, align: 'center', render: (_, row) => <MaterialActions row={row} onEdit={openMaterial} onToggle={toggleMaterial} onDelete={deleteMaterial} /> }
+    {
+      title: '操作',
+      width: 90,
+      align: 'center',
+      render: (_, row) => (
+        <MaterialActions row={row} onEdit={openMaterial} onToggle={toggleMaterial} onDelete={deleteMaterial} />
+      )
+    }
   ];
 
   const materialRowSelection = {
@@ -356,7 +440,13 @@ export default function App() {
     onChange: (keys: Key[]) => setSelectedMaterialIds(keys.map((key) => Number(key)))
   };
 
-  const title = { materials: '物料配置', configs: '自定义配置', dashboard: '数据中心', prints: '效期打印日志', scraps: '物料废弃日志' }[page];
+  const title = {
+    materials: '物料配置',
+    configs: '自定义配置',
+    dashboard: '数据中心',
+    prints: '效期打印日志',
+    scraps: '物料废弃日志'
+  }[page];
 
   return (
     <div className="admin-shell">
@@ -380,10 +470,26 @@ export default function App() {
       </aside>
       <aside className="func-menu">
         <div className="func-title">效期标签打印</div>
-        <div className={`menu-item ${page === 'materials' ? 'active' : ''}`} onClick={() => setPage('materials')}>▧ 物料配置</div>
-        <div className={`menu-item ${page === 'configs' ? 'active' : ''}`} onClick={() => setPage('configs')}>▨ 自定义配置</div>
-        <div className={`menu-item ${['dashboard', 'prints', 'scraps'].includes(page) ? 'active' : ''}`} onClick={() => setPage('dashboard')}>▩ 数据中心</div>
-        <div className="submenu"><span className={page === 'prints' ? 'active' : ''} onClick={() => setPage('prints')}>效期打印日志</span><span className={page === 'scraps' ? 'active' : ''} onClick={() => setPage('scraps')}>物料废弃日志</span></div>
+        <div className={`menu-item ${page === 'materials' ? 'active' : ''}`} onClick={() => setPage('materials')}>
+          ▧ 物料配置
+        </div>
+        <div className={`menu-item ${page === 'configs' ? 'active' : ''}`} onClick={() => setPage('configs')}>
+          ▨ 自定义配置
+        </div>
+        <div
+          className={`menu-item ${['dashboard', 'prints', 'scraps'].includes(page) ? 'active' : ''}`}
+          onClick={() => setPage('dashboard')}
+        >
+          ▩ 数据中心
+        </div>
+        <div className="submenu">
+          <span className={page === 'prints' ? 'active' : ''} onClick={() => setPage('prints')}>
+            效期打印日志
+          </span>
+          <span className={page === 'scraps' ? 'active' : ''} onClick={() => setPage('scraps')}>
+            物料废弃日志
+          </span>
+        </div>
       </aside>
       <div className="main">
         <header className="header">
@@ -391,14 +497,29 @@ export default function App() {
           {page === 'materials' && (
             <div className="header-actions">
               <div className="search-box">
-                <Input className="search-input" placeholder="搜索物料名称、编码" allowClear value={materialQuery.keyword} onChange={(event) => setMaterialQuery({ ...materialQuery, keyword: event.target.value })} onPressEnter={loadMaterials} />
+                <Input
+                  className="search-input"
+                  placeholder="搜索物料名称、编码"
+                  allowClear
+                  value={materialQuery.keyword}
+                  onChange={(event) => setMaterialQuery({ ...materialQuery, keyword: event.target.value })}
+                  onPressEnter={loadMaterials}
+                />
                 <span className="search-icon">🔍</span>
               </div>
-              <Button className="btn btn-secondary" onClick={openImportModal}>导入物料</Button>
-              <Button className="btn btn-primary" type="primary" onClick={() => openMaterial()}>+ 新增物料</Button>
+              <Button className="btn btn-secondary" onClick={openImportModal}>
+                导入物料
+              </Button>
+              <Button className="btn btn-primary" type="primary" onClick={() => openMaterial()}>
+                + 新增物料
+              </Button>
             </div>
           )}
-          {page === 'configs' && <Button className="btn btn-primary" type="primary" onClick={() => openConfig()}>新增配置</Button>}
+          {page === 'configs' && (
+            <Button className="btn btn-primary" type="primary" onClick={() => openConfig()}>
+              新增配置
+            </Button>
+          )}
         </header>
         <section className={`content ${page === 'materials' ? 'content-fixed' : ''}`}>
           {page === 'materials' && (
@@ -406,18 +527,55 @@ export default function App() {
               <div className="filter-bar">
                 <div className="filter-item">
                   <label>物料分类</label>
-                  <Select className="form-select" placeholder="全部分类" allowClear value={materialQuery.category || undefined} onChange={(value) => setMaterialQuery({ ...materialQuery, category: value || '' })} options={categories.map((item) => ({ label: item.name, value: item.name }))} style={{ width: 140 }} />
+                  <Select
+                    className="form-select"
+                    placeholder="全部分类"
+                    allowClear
+                    value={materialQuery.category || undefined}
+                    onChange={(value) => setMaterialQuery({ ...materialQuery, category: value || '' })}
+                    options={categories.map((item) => ({ label: item.name, value: item.name }))}
+                    style={{ width: 140 }}
+                  />
                 </div>
                 <div className="filter-item">
                   <label>物料类型</label>
-                  <Select className="form-select" placeholder="全部类型" allowClear value={materialQuery.type || undefined} onChange={(value) => setMaterialQuery({ ...materialQuery, type: value || '' })} options={types.map((item) => ({ label: item.name, value: item.name }))} style={{ width: 140 }} />
+                  <Select
+                    className="form-select"
+                    placeholder="全部类型"
+                    allowClear
+                    value={materialQuery.type || undefined}
+                    onChange={(value) => setMaterialQuery({ ...materialQuery, type: value || '' })}
+                    options={types.map((item) => ({ label: item.name, value: item.name }))}
+                    style={{ width: 140 }}
+                  />
                 </div>
                 <div className="filter-item">
                   <label>状态</label>
-                  <Select className="form-select" placeholder="全部状态" allowClear value={materialQuery.status || undefined} onChange={(value) => setMaterialQuery({ ...materialQuery, status: value || '' })} options={[{ label: '启用', value: 'enabled' }, { label: '禁用', value: 'disabled' }]} style={{ width: 110 }} />
+                  <Select
+                    className="form-select"
+                    placeholder="全部状态"
+                    allowClear
+                    value={materialQuery.status || undefined}
+                    onChange={(value) => setMaterialQuery({ ...materialQuery, status: value || '' })}
+                    options={[
+                      { label: '启用', value: 'enabled' },
+                      { label: '禁用', value: 'disabled' }
+                    ]}
+                    style={{ width: 110 }}
+                  />
                 </div>
-                <Button className="btn btn-primary btn-sm" type="primary" onClick={loadMaterials}>查询</Button>
-                <Button className="btn btn-secondary btn-sm" onClick={() => { setMaterialQuery({ keyword: '', category: '', type: '', status: '' }); void loadMaterials(); }}>重置</Button>
+                <Button className="btn btn-primary btn-sm" type="primary" onClick={loadMaterials}>
+                  查询
+                </Button>
+                <Button
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => {
+                    setMaterialQuery({ keyword: '', category: '', type: '', status: '' });
+                    void loadMaterials();
+                  }}
+                >
+                  重置
+                </Button>
               </div>
               <div className="card material-table-card">
                 <div className="card-header">
@@ -431,7 +589,10 @@ export default function App() {
                   columns={materialColumns}
                   dataSource={materials}
                   pagination={false}
-                  scroll={{ x: 'max-content', y: selectedMaterials.length > 0 ? 'calc(100vh - 394px)' : 'calc(100vh - 322px)' }}
+                  scroll={{
+                    x: 'max-content',
+                    y: selectedMaterials.length > 0 ? 'calc(100vh - 394px)' : 'calc(100vh - 322px)'
+                  }}
                 />
               </div>
               {selectedMaterials.length > 0 && (
@@ -439,15 +600,35 @@ export default function App() {
                   <div className="batch-selected-info">
                     <span className="batch-selected-check">✓</span>
                     <span>已选 {selectedMaterials.length} 项</span>
-                    <button className="batch-clear-btn" onClick={() => setSelectedMaterialIds([])}>取消选择</button>
+                    <button className="batch-clear-btn" onClick={() => setSelectedMaterialIds([])}>
+                      取消选择
+                    </button>
                   </div>
                   <div className="batch-actions">
                     {selectedEnabledMaterials.length > 0 && (
-                      <Button className="btn btn-secondary" danger onClick={() => batchChangeMaterials('disabled', selectedEnabledMaterials)}>批量禁用</Button>
+                      <Button
+                        className="btn btn-secondary"
+                        danger
+                        onClick={() => batchChangeMaterials('disabled', selectedEnabledMaterials)}
+                      >
+                        批量禁用
+                      </Button>
                     )}
-                    <Button className="btn btn-secondary" danger onClick={() => batchChangeMaterials('deleted', selectedMaterials)}>批量删除</Button>
+                    <Button
+                      className="btn btn-secondary"
+                      danger
+                      onClick={() => batchChangeMaterials('deleted', selectedMaterials)}
+                    >
+                      批量删除
+                    </Button>
                     {selectedDisabledMaterials.length > 0 && (
-                      <Button className="btn btn-primary" type="primary" onClick={() => batchChangeMaterials('enabled', selectedDisabledMaterials)}>批量启用</Button>
+                      <Button
+                        className="btn btn-primary"
+                        type="primary"
+                        onClick={() => batchChangeMaterials('enabled', selectedDisabledMaterials)}
+                      >
+                        批量启用
+                      </Button>
                     )}
                   </div>
                 </div>
@@ -457,40 +638,121 @@ export default function App() {
 
           {page === 'configs' && (
             <div className="panel">
-              <Tabs activeKey={configKind} onChange={(key) => setConfigKind(key as ConfigKind)} items={[{ key: 'category', label: '物料分类' }, { key: 'type', label: '物料类型' }, { key: 'unit', label: '规格单位' }]} />
-              <Table rowKey="id" dataSource={configs.filter((item) => item.kind === configKind)} pagination={false} columns={[
-                { title: '序号', render: (_v, _r, index) => index + 1, width: 70 },
-                { title: '编码', dataIndex: 'code' },
-                { title: '名称', dataIndex: 'name' },
-                { title: '备注', dataIndex: 'extra' },
-                { title: '排序', dataIndex: 'sort' },
-                { title: '状态', render: (_, row: ConfigItem) => <StatusTag status={row.status} /> },
-                { title: '操作', render: (_, row: ConfigItem) => <Space><Button type="link" onClick={() => openConfig(row)}>编辑</Button><Button type="link" danger onClick={() => toggleConfig(row)}>{row.status === 'enabled' ? '禁用' : '启用'}</Button></Space> }
-              ]} />
+              <Tabs
+                activeKey={configKind}
+                onChange={(key) => setConfigKind(key as ConfigKind)}
+                items={[
+                  { key: 'category', label: '物料分类' },
+                  { key: 'type', label: '物料类型' },
+                  { key: 'unit', label: '规格单位' }
+                ]}
+              />
+              <Table
+                rowKey="id"
+                dataSource={configs.filter((item) => item.kind === configKind)}
+                pagination={false}
+                columns={[
+                  { title: '序号', render: (_v, _r, index) => index + 1, width: 70 },
+                  { title: '编码', dataIndex: 'code' },
+                  { title: '名称', dataIndex: 'name' },
+                  { title: '备注', dataIndex: 'extra' },
+                  { title: '排序', dataIndex: 'sort' },
+                  { title: '状态', render: (_, row: ConfigItem) => <StatusTag status={row.status} /> },
+                  {
+                    title: '操作',
+                    render: (_, row: ConfigItem) => (
+                      <Space>
+                        <Button type="link" onClick={() => openConfig(row)}>
+                          编辑
+                        </Button>
+                        <Button type="link" danger onClick={() => toggleConfig(row)}>
+                          {row.status === 'enabled' ? '禁用' : '启用'}
+                        </Button>
+                      </Space>
+                    )
+                  }
+                ]}
+              />
             </div>
           )}
 
-          {page === 'dashboard' && <Dashboard dashboard={dashboard} warningOpened={warningOpened} query={dashboardQuery} onQueryChange={setDashboardQuery} onPresetChange={(preset) => updatePreset(preset, setDashboardQuery, dashboardQuery)} onSearch={loadDashboard} />}
-          {page === 'prints' && <PrintLogs logs={dashboard.printLogs} query={printLogQuery} onQueryChange={setPrintLogQuery} onPresetChange={(preset) => updatePreset(preset, setPrintLogQuery, printLogQuery)} onSearch={loadDashboard} />}
-          {page === 'scraps' && <ScrapLogs logs={dashboard.scrapLogs} query={scrapLogQuery} onQueryChange={setScrapLogQuery} onPresetChange={(preset) => updatePreset(preset, setScrapLogQuery, scrapLogQuery)} onSearch={loadDashboard} />}
+          {page === 'dashboard' && (
+            <Dashboard
+              dashboard={dashboard}
+              warningOpened={warningOpened}
+              query={dashboardQuery}
+              onQueryChange={setDashboardQuery}
+              onPresetChange={(preset) => updatePreset(preset, setDashboardQuery, dashboardQuery)}
+              onSearch={loadDashboard}
+            />
+          )}
+          {page === 'prints' && (
+            <PrintLogs
+              logs={dashboard.printLogs}
+              query={printLogQuery}
+              onQueryChange={setPrintLogQuery}
+              onPresetChange={(preset) => updatePreset(preset, setPrintLogQuery, printLogQuery)}
+              onSearch={loadDashboard}
+            />
+          )}
+          {page === 'scraps' && (
+            <ScrapLogs
+              logs={dashboard.scrapLogs}
+              query={scrapLogQuery}
+              onQueryChange={setScrapLogQuery}
+              onPresetChange={(preset) => updatePreset(preset, setScrapLogQuery, scrapLogQuery)}
+              onSearch={loadDashboard}
+            />
+          )}
         </section>
       </div>
 
-      <Modal open={materialOpen} title={editingMaterial ? '编辑物料' : '新增物料'} onCancel={() => setMaterialOpen(false)} onOk={saveMaterial} width={640}>
+      <Modal
+        open={materialOpen}
+        title={editingMaterial ? '编辑物料' : '新增物料'}
+        onCancel={() => setMaterialOpen(false)}
+        onOk={saveMaterial}
+        width={640}
+      >
         <Form form={materialForm} layout="vertical">
-          <Form.Item name="code" label="物料编码" rules={[{ required: true }]}><Input /></Form.Item>
-          <Form.Item name="name" label="物料名称" rules={[{ required: true }]}><Input /></Form.Item>
-          <Form.Item name="category" label="物料分类" rules={[{ required: true }]}><Select options={categories.map((item) => ({ label: item.name, value: item.name }))} /></Form.Item>
-          <Form.Item name="type" label="物料类型" rules={[{ required: true }]}><Select options={types.map((item) => ({ label: item.name, value: item.name }))} /></Form.Item>
-          <Form.Item name="unit" label="规格单位" rules={[{ required: true }]}><Select options={units.map((item) => ({ label: item.name, value: item.name }))} /></Form.Item>
+          <Form.Item name="code" label="物料编码" rules={[{ required: true }]}>
+            <Input />
+          </Form.Item>
+          <Form.Item name="name" label="物料名称" rules={[{ required: true }]}>
+            <Input />
+          </Form.Item>
+          <Form.Item name="category" label="物料分类" rules={[{ required: true }]}>
+            <Select options={categories.map((item) => ({ label: item.name, value: item.name }))} />
+          </Form.Item>
+          <Form.Item name="type" label="物料类型" rules={[{ required: true }]}>
+            <Select options={types.map((item) => ({ label: item.name, value: item.name }))} />
+          </Form.Item>
+          <Form.Item name="unit" label="规格单位" rules={[{ required: true }]}>
+            <Select options={units.map((item) => ({ label: item.name, value: item.name }))} />
+          </Form.Item>
           <Space>
-            <Form.Item name="shelfLifeValue" label="保质期" rules={[{ required: true }]}><InputNumber min={1} /></Form.Item>
-            <Form.Item name="shelfLifeUnit" label="单位"><Select style={{ width: 100 }} options={timeOptions} /></Form.Item>
-            <Form.Item name="openedLifeValue" label="开封效期" rules={[{ required: true }]}><InputNumber min={1} /></Form.Item>
-            <Form.Item name="openedLifeUnit" label="单位"><Select style={{ width: 100 }} options={timeOptions} /></Form.Item>
+            <Form.Item name="shelfLifeValue" label="保质期" rules={[{ required: true }]}>
+              <InputNumber min={1} />
+            </Form.Item>
+            <Form.Item name="shelfLifeUnit" label="单位">
+              <Select style={{ width: 100 }} options={timeOptions} />
+            </Form.Item>
+            <Form.Item name="openedLifeValue" label="开封效期" rules={[{ required: true }]}>
+              <InputNumber min={1} />
+            </Form.Item>
+            <Form.Item name="openedLifeUnit" label="单位">
+              <Select style={{ width: 100 }} options={timeOptions} />
+            </Form.Item>
           </Space>
-          <Form.Item name="status" label="状态"><Radio.Group><Radio value="enabled">启用</Radio><Radio value="disabled">禁用</Radio></Radio.Group></Form.Item>
-          <Form.Item name="remark" label="备注"><Input.TextArea /></Form.Item>
+          <Form.Item name="status" label="状态">
+            <Radio.Group>
+              <Radio value="enabled">启用</Radio>
+              <Radio value="disabled">禁用</Radio>
+            </Radio.Group>
+          </Form.Item>
+          <Form.Item name="remark" label="备注">
+            <Input.TextArea />
+          </Form.Item>
         </Form>
       </Modal>
 
@@ -498,7 +760,9 @@ export default function App() {
         open={!!confirmAction}
         title={confirmAction?.title}
         onCancel={() => setConfirmAction(null)}
-        onOk={() => { void runConfirmAction(); }}
+        onOk={() => {
+          void runConfirmAction();
+        }}
         confirmLoading={confirmLoading}
         okText={confirmAction?.okText || '确认'}
         cancelText="取消"
@@ -511,7 +775,21 @@ export default function App() {
         open={importOpen}
         title="批量导入物料"
         onCancel={() => setImportOpen(false)}
-        footer={<div className="import-modal-footer"><button className="plain-btn plain-btn-secondary" onClick={() => setImportOpen(false)}>取消</button><button className="plain-btn plain-btn-primary" onClick={() => { void confirmImportMaterial(); }}>导入</button></div>}
+        footer={
+          <div className="import-modal-footer">
+            <button className="plain-btn plain-btn-secondary" onClick={() => setImportOpen(false)}>
+              取消
+            </button>
+            <button
+              className="plain-btn plain-btn-primary"
+              onClick={() => {
+                void confirmImportMaterial();
+              }}
+            >
+              导入
+            </button>
+          </div>
+        }
         width={480}
         className="import-modal"
       >
@@ -549,25 +827,63 @@ export default function App() {
             <div className="template-title">📋 批量导入物料模板</div>
             <div className="template-desc">下载批量导入物料模板，根据模板完善内容</div>
           </div>
-          <Button className="btn btn-secondary" onClick={downloadMaterialTemplate}>下载模板</Button>
+          <Button className="btn btn-secondary" onClick={downloadMaterialTemplate}>
+            下载模板
+          </Button>
         </div>
       </Modal>
 
-      <Modal open={configOpen} title={editingConfig ? '编辑配置' : '新增配置'} onCancel={() => setConfigOpen(false)} onOk={saveConfig}>
+      <Modal
+        open={configOpen}
+        title={editingConfig ? '编辑配置' : '新增配置'}
+        onCancel={() => setConfigOpen(false)}
+        onOk={saveConfig}
+      >
         <Form form={configForm} layout="vertical">
-          <Form.Item name="kind" label="类型"><Select options={[{ label: '物料分类', value: 'category' }, { label: '物料类型', value: 'type' }, { label: '规格单位', value: 'unit' }]} /></Form.Item>
-          <Form.Item name="code" label="编码" rules={[{ required: true }]}><Input /></Form.Item>
-          <Form.Item name="name" label="名称" rules={[{ required: true }]}><Input /></Form.Item>
-          <Form.Item name="extra" label="备注"><Input /></Form.Item>
-          <Form.Item name="sort" label="排序"><InputNumber min={1} /></Form.Item>
-          <Form.Item name="status" label="状态"><Radio.Group><Radio value="enabled">启用</Radio><Radio value="disabled">禁用</Radio></Radio.Group></Form.Item>
+          <Form.Item name="kind" label="类型">
+            <Select
+              options={[
+                { label: '物料分类', value: 'category' },
+                { label: '物料类型', value: 'type' },
+                { label: '规格单位', value: 'unit' }
+              ]}
+            />
+          </Form.Item>
+          <Form.Item name="code" label="编码" rules={[{ required: true }]}>
+            <Input />
+          </Form.Item>
+          <Form.Item name="name" label="名称" rules={[{ required: true }]}>
+            <Input />
+          </Form.Item>
+          <Form.Item name="extra" label="备注">
+            <Input />
+          </Form.Item>
+          <Form.Item name="sort" label="排序">
+            <InputNumber min={1} />
+          </Form.Item>
+          <Form.Item name="status" label="状态">
+            <Radio.Group>
+              <Radio value="enabled">启用</Radio>
+              <Radio value="disabled">禁用</Radio>
+            </Radio.Group>
+          </Form.Item>
         </Form>
       </Modal>
     </div>
   );
 }
 
-function MaterialActions({ row, onEdit, onToggle, onDelete }: { row: Material; onEdit: (row: Material) => void; onToggle: (row: Material) => void; onDelete: (row: Material) => void }) {
+function MaterialActions({
+  row,
+  onEdit,
+  onToggle,
+  onDelete
+}: {
+  row: Material;
+  onEdit: (row: Material) => void;
+  onToggle: (row: Material) => void;
+  onDelete: (row: Material) => void;
+}) {
   const items: MenuProps['items'] = [
     { key: 'edit', label: '编辑' },
     { key: 'toggle', label: row.status === 'enabled' ? '禁用' : '启用', danger: row.status === 'enabled' },
@@ -587,12 +903,14 @@ function MaterialActions({ row, onEdit, onToggle, onDelete }: { row: Material; o
         }
       }}
     >
-      <button className="more-action-btn" aria-label={`更多操作-${row.code}`}>...</button>
+      <button className="more-action-btn" aria-label={`更多操作-${row.code}`}>
+        ...
+      </button>
     </Dropdown>
   );
 }
 
-function AppNavIcon({ name }: { name: typeof appNavItems[number]['icon'] }) {
+function AppNavIcon({ name }: { name: (typeof appNavItems)[number]['icon'] }) {
   const iconProps = { width: 22, height: 22, viewBox: '0 0 24 24', fill: 'none', 'aria-hidden': true } as const;
   if (name === 'workbench') {
     return (
@@ -645,7 +963,11 @@ function AppNavIcon({ name }: { name: typeof appNavItems[number]['icon'] }) {
   );
 }
 
-const timeOptions = [{ label: '分钟', value: 'minutes' }, { label: '小时', value: 'hours' }, { label: '天', value: 'days' }];
+const timeOptions = [
+  { label: '分钟', value: 'minutes' },
+  { label: '小时', value: 'hours' },
+  { label: '天', value: 'days' }
+];
 
 function parseMaterialImportRow(row: Record<string, unknown>): MaterialImportRow {
   return {
@@ -663,15 +985,24 @@ function parseMaterialImportRow(row: Record<string, unknown>): MaterialImportRow
   };
 }
 
-function validateMaterialImportRow(material: MaterialImportRow, rowNumber: number, categories: Set<string>, types: Set<string>, units: Set<string>) {
+function validateMaterialImportRow(
+  material: MaterialImportRow,
+  rowNumber: number,
+  categories: Set<string>,
+  types: Set<string>,
+  units: Set<string>
+) {
   const errors: string[] = [];
   if (!material.code) errors.push(`第 ${rowNumber} 行：物料编码必填`);
   if (!material.name) errors.push(`第 ${rowNumber} 行：物料名称必填`);
-  if (!categories.has(material.category)) errors.push(`第 ${rowNumber} 行：物料分类“${material.category || '空'}”不在自定义配置中`);
+  if (!categories.has(material.category))
+    errors.push(`第 ${rowNumber} 行：物料分类“${material.category || '空'}”不在自定义配置中`);
   if (!types.has(material.type)) errors.push(`第 ${rowNumber} 行：物料类型“${material.type || '空'}”不在自定义配置中`);
   if (!units.has(material.unit)) errors.push(`第 ${rowNumber} 行：规格单位“${material.unit || '空'}”不在自定义配置中`);
-  if (!Number.isInteger(material.shelfLifeValue) || material.shelfLifeValue < 1) errors.push(`第 ${rowNumber} 行：保质期数值必须是大于 0 的整数`);
-  if (!Number.isInteger(material.openedLifeValue) || material.openedLifeValue < 1) errors.push(`第 ${rowNumber} 行：开封效期数值必须是大于 0 的整数`);
+  if (!Number.isInteger(material.shelfLifeValue) || material.shelfLifeValue < 1)
+    errors.push(`第 ${rowNumber} 行：保质期数值必须是大于 0 的整数`);
+  if (!Number.isInteger(material.openedLifeValue) || material.openedLifeValue < 1)
+    errors.push(`第 ${rowNumber} 行：开封效期数值必须是大于 0 的整数`);
   if (!material.shelfLifeUnit) errors.push(`第 ${rowNumber} 行：保质期单位必须填写分钟、小时或天`);
   if (!material.openedLifeUnit) errors.push(`第 ${rowNumber} 行：开封效期单位必须填写分钟、小时或天`);
   return errors;
@@ -683,18 +1014,43 @@ function cellText(value: unknown) {
 
 function parseTimeUnit(value: string) {
   const normalized = value.toLowerCase();
-  const map: Record<string, string> = { 分钟: 'minutes', minute: 'minutes', minutes: 'minutes', 小时: 'hours', hour: 'hours', hours: 'hours', 天: 'days', 日: 'days', day: 'days', days: 'days' };
+  const map: Record<string, string> = {
+    分钟: 'minutes',
+    minute: 'minutes',
+    minutes: 'minutes',
+    小时: 'hours',
+    hour: 'hours',
+    hours: 'hours',
+    天: 'days',
+    日: 'days',
+    day: 'days',
+    days: 'days'
+  };
   return map[value] || map[normalized] || value;
 }
 
 function parseImportStatus(value: string): 'enabled' | 'disabled' {
   const normalized = value.toLowerCase();
-  const map: Record<string, 'enabled' | 'disabled'> = { 启用: 'enabled', 正常: 'enabled', enabled: 'enabled', 停用: 'disabled', 禁用: 'disabled', disabled: 'disabled' };
+  const map: Record<string, 'enabled' | 'disabled'> = {
+    启用: 'enabled',
+    正常: 'enabled',
+    enabled: 'enabled',
+    停用: 'disabled',
+    禁用: 'disabled',
+    disabled: 'disabled'
+  };
   return map[value] || map[normalized] || 'enabled';
 }
 
 function ImportErrorList({ errors }: { errors: string[] }) {
-  return <div style={{ maxHeight: 280, overflow: 'auto' }}>{errors.slice(0, 50).map((error) => <div key={error}>{error}</div>)}{errors.length > 50 ? <div>还有 {errors.length - 50} 条错误未展示</div> : null}</div>;
+  return (
+    <div style={{ maxHeight: 280, overflow: 'auto' }}>
+      {errors.slice(0, 50).map((error) => (
+        <div key={error}>{error}</div>
+      ))}
+      {errors.length > 50 ? <div>还有 {errors.length - 50} 条错误未展示</div> : null}
+    </div>
+  );
 }
 
 function Dashboard({
@@ -730,7 +1086,12 @@ function Dashboard({
             ]}
           />
         </div>
-        <TimeRangeFilter query={query} onQueryChange={onQueryChange} onPresetChange={onPresetChange} onSearch={onSearch} />
+        <TimeRangeFilter
+          query={query}
+          onQueryChange={onQueryChange}
+          onPresetChange={onPresetChange}
+          onSearch={onSearch}
+        />
       </div>
       <div className="stats-grid">
         <Stat label="物料总数" value={dashboard.stats.materialCount || 0} />
@@ -739,34 +1100,54 @@ function Dashboard({
         <Stat label="本月废弃" value={dashboard.stats.monthScrapCount || 0} />
       </div>
       <div className="panel" style={{ marginTop: 16 }}>
-        <Tabs items={[
-          { key: 'usage', label: '物料使用情况', children: <Table<UsageRow> rowKey={(row) => row.material.id} dataSource={dashboard.usage} pagination={false} columns={[
-            { title: '序号', render: (_v, _r, index) => index + 1, width: 70 },
-            { title: '物料编码', render: (_, row) => row.material.code },
-            { title: '物料名称', render: (_, row) => row.material.name },
-            { title: '物料分类', render: (_, row) => row.material.category },
-            { title: '使用次数', dataIndex: 'useCount' },
-            { title: '废弃次数', dataIndex: 'scrapCount' },
-            { title: '使用率', dataIndex: 'usageRate' }
-          ]} /> },
-          { key: 'opened', label: '开盒物料', children: <OpenedTable rows={dashboard.openedMaterials} /> },
-          { key: 'warning', label: '到期预警', children: <OpenedTable rows={warningOpened} /> }
-        ]} />
+        <Tabs
+          items={[
+            {
+              key: 'usage',
+              label: '物料使用情况',
+              children: (
+                <Table<UsageRow>
+                  rowKey={(row) => row.material.id}
+                  dataSource={dashboard.usage}
+                  pagination={false}
+                  columns={[
+                    { title: '序号', render: (_v, _r, index) => index + 1, width: 70 },
+                    { title: '物料编码', render: (_, row) => row.material.code },
+                    { title: '物料名称', render: (_, row) => row.material.name },
+                    { title: '物料分类', render: (_, row) => row.material.category },
+                    { title: '使用次数', dataIndex: 'useCount' },
+                    { title: '废弃次数', dataIndex: 'scrapCount' },
+                    { title: '使用率', dataIndex: 'usageRate' }
+                  ]}
+                />
+              )
+            },
+            { key: 'opened', label: '开盒物料', children: <OpenedTable rows={dashboard.openedMaterials} /> },
+            { key: 'warning', label: '到期预警', children: <OpenedTable rows={warningOpened} /> }
+          ]}
+        />
       </div>
     </>
   );
 }
 
 function OpenedTable({ rows }: { rows: any[] }) {
-  return <Table rowKey="id" dataSource={rows} pagination={false} columns={[
-    { title: '序号', render: (_v, _r, index) => index + 1, width: 70 },
-    { title: '物料编码', render: (_, row) => row.material.code },
-    { title: '物料名称', render: (_, row) => row.material.name },
-    { title: '状态', render: (_, row) => <StatusTag status={row.computedStatus} /> },
-    { title: '开封时间', render: (_, row) => formatDate(row.openedAt) },
-    { title: '到期时间', render: (_, row) => formatDate(row.expiresAt) },
-    { title: '剩余时间', dataIndex: 'remainingText' }
-  ]} />;
+  return (
+    <Table
+      rowKey="id"
+      dataSource={rows}
+      pagination={false}
+      columns={[
+        { title: '序号', render: (_v, _r, index) => index + 1, width: 70 },
+        { title: '物料编码', render: (_, row) => row.material.code },
+        { title: '物料名称', render: (_, row) => row.material.name },
+        { title: '状态', render: (_, row) => <StatusTag status={row.computedStatus} /> },
+        { title: '开封时间', render: (_, row) => formatDate(row.openedAt) },
+        { title: '到期时间', render: (_, row) => formatDate(row.expiresAt) },
+        { title: '剩余时间', dataIndex: 'remainingText' }
+      ]}
+    />
+  );
 }
 
 function PrintLogs({
@@ -785,19 +1166,29 @@ function PrintLogs({
   return (
     <>
       <div className="filter-bar">
-        <TimeRangeFilter query={query} onQueryChange={onQueryChange} onPresetChange={onPresetChange} onSearch={onSearch} />
+        <TimeRangeFilter
+          query={query}
+          onQueryChange={onQueryChange}
+          onPresetChange={onPresetChange}
+          onSearch={onSearch}
+        />
       </div>
       <div className="panel">
-        <Table rowKey="id" dataSource={logs} pagination={false} columns={[
-          { title: '序号', render: (_v, _r, index) => index + 1, width: 70 },
-          { title: '物料名称', render: (_, row) => row.material.name },
-          { title: '物料分类', render: (_, row) => row.material.category },
-          { title: '物料类型', render: (_, row) => row.material.type },
-          { title: '开封时间', render: (_, row) => formatDate(row.openedAt) },
-          { title: '到期时间', render: (_, row) => formatDate(row.expiresAt) },
-          { title: '打印张数', dataIndex: 'printCount' },
-          { title: '操作人', dataIndex: 'operator' }
-        ]} />
+        <Table
+          rowKey="id"
+          dataSource={logs}
+          pagination={false}
+          columns={[
+            { title: '序号', render: (_v, _r, index) => index + 1, width: 70 },
+            { title: '物料名称', render: (_, row) => row.material.name },
+            { title: '物料分类', render: (_, row) => row.material.category },
+            { title: '物料类型', render: (_, row) => row.material.type },
+            { title: '开封时间', render: (_, row) => formatDate(row.openedAt) },
+            { title: '到期时间', render: (_, row) => formatDate(row.expiresAt) },
+            { title: '打印张数', dataIndex: 'printCount' },
+            { title: '操作人', dataIndex: 'operator' }
+          ]}
+        />
       </div>
     </>
   );
@@ -819,20 +1210,30 @@ function ScrapLogs({
   return (
     <>
       <div className="filter-bar">
-        <TimeRangeFilter query={query} onQueryChange={onQueryChange} onPresetChange={onPresetChange} onSearch={onSearch} />
+        <TimeRangeFilter
+          query={query}
+          onQueryChange={onQueryChange}
+          onPresetChange={onPresetChange}
+          onSearch={onSearch}
+        />
       </div>
       <div className="panel">
-        <Table rowKey="id" dataSource={logs} pagination={false} columns={[
-          { title: '序号', render: (_v, _r, index) => index + 1, width: 70 },
-          { title: '物料名称', render: (_, row) => row.material.name },
-          { title: '物料分类', render: (_, row) => row.material.category },
-          { title: '物料类型', render: (_, row) => row.material.type },
-          { title: '开封时间', render: (_, row) => formatDate(row.openedMaterial.openedAt) },
-          { title: '到期时间', render: (_, row) => formatDate(row.openedMaterial.expiresAt) },
-          { title: '废弃量', render: (_, row) => `${row.quantity}${row.unit}` },
-          { title: '废弃时间', render: (_, row) => formatDate(row.createdAt) },
-          { title: '操作人', dataIndex: 'operator' }
-        ]} />
+        <Table
+          rowKey="id"
+          dataSource={logs}
+          pagination={false}
+          columns={[
+            { title: '序号', render: (_v, _r, index) => index + 1, width: 70 },
+            { title: '物料名称', render: (_, row) => row.material.name },
+            { title: '物料分类', render: (_, row) => row.material.category },
+            { title: '物料类型', render: (_, row) => row.material.type },
+            { title: '开封时间', render: (_, row) => formatDate(row.openedMaterial.openedAt) },
+            { title: '到期时间', render: (_, row) => formatDate(row.openedMaterial.expiresAt) },
+            { title: '废弃量', render: (_, row) => `${row.quantity}${row.unit}` },
+            { title: '废弃时间', render: (_, row) => formatDate(row.createdAt) },
+            { title: '操作人', dataIndex: 'operator' }
+          ]}
+        />
       </div>
     </>
   );
@@ -884,18 +1285,38 @@ function TimeRangeFilter<T extends RangeQuery & { preset: string }>({
         />
       </div>
       <div className="filter-actions">
-        <Button className="btn btn-primary" type="primary" onClick={() => { void onSearch(); }}>查询</Button>
+        <Button
+          className="btn btn-primary"
+          type="primary"
+          onClick={() => {
+            void onSearch();
+          }}
+        >
+          查询
+        </Button>
       </div>
     </>
   );
 }
 
 function Stat({ label, value }: { label: string; value: number }) {
-  return <div className="stat"><div className="stat-label">{label}</div><div className="stat-value">{value}</div></div>;
+  return (
+    <div className="stat">
+      <div className="stat-label">{label}</div>
+      <div className="stat-value">{value}</div>
+    </div>
+  );
 }
 
 function StatusTag({ status }: { status: string }) {
-  const className = status === 'enabled' || status === 'normal' ? 'status-enabled' : status === 'warning' ? 'status-warning' : status === 'disabled' ? 'status-disabled' : 'status-danger';
+  const className =
+    status === 'enabled' || status === 'normal'
+      ? 'status-enabled'
+      : status === 'warning'
+        ? 'status-warning'
+        : status === 'disabled'
+          ? 'status-disabled'
+          : 'status-danger';
   return <span className={`status-tag ${className}`}>{statusText(status)}</span>;
 }
 
@@ -904,7 +1325,20 @@ function unitText(unit: string) {
 }
 
 function statusText(status: string) {
-  return ({ enabled: '启用', disabled: '禁用', deleted: '已删除', normal: '正常', warning: '即将过期', expired: '已过期', used: '已使用', scrapped: '已废弃' } as Record<string, string>)[status] || status;
+  return (
+    (
+      {
+        enabled: '启用',
+        disabled: '禁用',
+        deleted: '已删除',
+        normal: '正常',
+        warning: '即将过期',
+        expired: '已过期',
+        used: '已使用',
+        scrapped: '已废弃'
+      } as Record<string, string>
+    )[status] || status
+  );
 }
 
 function formatDate(value: string) {

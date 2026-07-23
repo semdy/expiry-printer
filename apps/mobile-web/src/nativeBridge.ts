@@ -74,10 +74,7 @@ class Bridge {
   // Native -> JS
   private handleMessage(message: BridgeMessage | string) {
     try {
-      const parsed =
-            typeof message === 'string'
-              ? JSON.parse(message) as BridgeMessage
-              : message;
+      const parsed = typeof message === 'string' ? (JSON.parse(message) as BridgeMessage) : message;
 
       // 方法返回
       if (parsed.type === 'callback') {
