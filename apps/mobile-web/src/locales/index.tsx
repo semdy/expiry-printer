@@ -1,35 +1,31 @@
-import i18n from "i18next";
-import {
-  Trans as RawTrans,
-  useTranslation as useRawTranslation,
-  initReactI18next
-} from "react-i18next";
+import i18n from 'i18next';
+import { Trans as RawTrans, useTranslation as useRawTranslation, initReactI18next } from 'react-i18next';
 
-import en_gen from "./gen/en.json";
-import zhHans_gen from "./gen/zh-cn.json";
-import zhHant_gen from "./gen/zh-tw.json";
+import en_gen from './gen/en.json';
+import zhHans_gen from './gen/zh-cn.json';
+import zhHant_gen from './gen/zh-tw.json';
 
 export const messages = {
-  "zh-CN": zhHans_gen,
-  "zh-TW": zhHant_gen,
+  'zh-CN': zhHans_gen,
+  'zh-TW': zhHant_gen,
   en: en_gen
 } as const;
 
 export type SupportLocale = keyof typeof messages;
 
 export function getClientLocale(): SupportLocale {
-  const localeFromStorage = localStorage.getItem("locale");
+  const localeFromStorage = localStorage.getItem('locale');
   if (localeFromStorage) {
     return localeFromStorage as SupportLocale;
   }
   const clientLocale = navigator.language;
   const clientLocaleMap: Record<string, SupportLocale> = {
-    "zh-CN": "zh-CN",
-    "zh-TW": "zh-TW",
-    zh: "zh-CN",
-    "en-US": "en"
+    'zh-CN': 'zh-CN',
+    'zh-TW': 'zh-TW',
+    zh: 'zh-CN',
+    'en-US': 'en'
   };
-  return clientLocaleMap[clientLocale] || "en";
+  return clientLocaleMap[clientLocale] || 'en';
 }
 
 export let locale: SupportLocale = getClientLocale();
@@ -39,46 +35,37 @@ export const languageList: {
   label: string;
 }[] = [
   {
-    value: "zh-CN",
-    label: "简体中文"
+    value: 'zh-CN',
+    label: '简体中文'
   },
   {
-    value: "zh-TW",
-    label: "繁体中文"
+    value: 'zh-TW',
+    label: '繁体中文'
   },
-  { value: "en", label: "English" },
+  { value: 'en', label: 'English' }
 ];
 
 export function changeLanguage(lang: SupportLocale) {
   if (locale === lang) return;
   locale = lang;
-  localStorage.setItem("locale", lang);
+  localStorage.setItem('locale', lang);
   i18n.changeLanguage(locale);
 }
 
 function formatMessage(id: string): string;
 function formatMessage(id: string, defaultMessage: string): string;
 function formatMessage(id: string, values: Record<string, any>): string;
+function formatMessage(id: string, defaultMessage: string, values: Record<string, any>): string;
 function formatMessage(
-  id: string,
-  defaultMessage: string,
-  values: Record<string, any>
-): string;
-function formatMessage(
-  ...args:
-    | [string]
-    | [string, string]
-    | [string, string, Record<string, any>]
-    | [string, Record<string, any>]
+  ...args: [string] | [string, string] | [string, string, Record<string, any>] | [string, Record<string, any>]
 ): string {
   let [id, defaultMessage, values] = args;
 
-  if (typeof defaultMessage === "object") {
+  if (typeof defaultMessage === 'object') {
     values = defaultMessage;
     defaultMessage = undefined;
   }
-  let msg =
-    (messages[locale] as Record<string, any>)?.[id] || defaultMessage || id;
+  let msg = (messages[locale] as Record<string, any>)?.[id] || defaultMessage || id;
   if (values) {
     msg = msg.replace(/\{([^}]+)\}/gm, (match: any, name: string) => {
       return values[name] ?? match;
@@ -97,7 +84,7 @@ export function useTranslation() {
   hooks.t = (...args: any[]) => {
     let [id, defaultValue, values] = args;
 
-    if (typeof defaultValue === "object") {
+    if (typeof defaultValue === 'object') {
       values = defaultValue;
     }
     return rawTFunc(id, {
@@ -109,38 +96,31 @@ export function useTranslation() {
   return hooks;
 }
 
-export function Trans(props: {
-  id?: string;
-  msg?: string;
-  defaultMessage?: string;
-  values?: Record<string, any>;
-}) {
+export function Trans(props: { id?: string; msg?: string; defaultMessage?: string; values?: Record<string, any> }) {
   useRawTranslation();
   if (props.msg) {
     return <RawTrans i18nKey={props.id} defaults={props.msg} {...props} />;
   }
-  return (
-    <RawTrans i18nKey={props.id} defaults={props.defaultMessage} {...props} />
-  );
+  return <RawTrans i18nKey={props.id} defaults={props.defaultMessage} {...props} />;
 }
 
 i18n.use(initReactI18next).init({
   resources: {
-    "zh-CN": {
-      translation: messages["zh-CN"]
+    'zh-CN': {
+      translation: messages['zh-CN']
     },
-    "zh-TW": {
-      translation: messages["zh-TW"]
+    'zh-TW': {
+      translation: messages['zh-TW']
     },
     en: {
-      translation: messages["en"]
+      translation: messages['en']
     }
   },
   lng: locale,
-  fallbackLng: "zh-CN",
+  fallbackLng: 'zh-CN',
   interpolation: {
-    prefix: "{",
-    suffix: "}"
+    prefix: '{',
+    suffix: '}'
   },
   debug: false
 });

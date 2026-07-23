@@ -4,8 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite --host 127.0.0.1 --port 5174",
-    "build": "tsc -b && vite build",
+    "dev": "npm run i18n:extract && vite --host 127.0.0.1 --port 5174",
+    "build": "tsc -b && npm run i18n:extract && vite build",
     "i18n:extract": "extract-i18n",
     "preview": "vite preview --port 5174",
     "native:sync": "npm run build && node scripts/sync-native.mjs",

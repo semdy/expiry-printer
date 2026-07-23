@@ -1,6 +1,7 @@
 import cp936Table from 'iconv-lite/encodings/tables/cp936.json';
 import gbkAddedTable from 'iconv-lite/encodings/tables/gbk-added.json';
 import { bytesToBase64, NativeBluetoothPrinter } from './bluetoothPrinter';
+import { locale } from './locales';
 import type {
   BluetoothPrinterConnection,
   BluetoothPrinterDevice,
@@ -117,10 +118,10 @@ function buildTsplLabelCommand(label: LabelPayload) {
       'REFERENCE 0,0',
       'CODEPAGE 936',
       'CLS',
-      tsplText(24, 24, `物料名称：${label.materialName}`),
-      tsplText(24, 72, `物料类型：${label.materialType}`),
-      tsplText(24, 134, `打印时间：${formatFullLabelDate(label.printedAt)}`),
-      tsplText(24, 184, `到期时间：${formatFullLabelDate(label.expiresAt)}`),
+      tsplText(18, 24, `物料名称：${label.materialName}`),
+      tsplText(18, 72, `物料类型：${label.materialType}`),
+      tsplText(18, 134, `打印时间：${formatFullLabelDate(label.printedAt)}`),
+      tsplText(18, 184, `到期时间：${formatFullLabelDate(label.expiresAt)}`),
       'PRINT 1,1',
       ''
     ].join('\r\n')
@@ -187,9 +188,23 @@ function buildGbkEncodeMap() {
   return map;
 }
 
-function formatFullLabelDate(value: string) {
+export function formatFullLabelDate(value: string, language = locale) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
-  const pad = (num: number) => String(num).padStart(2, '0');
-  return `${date.getFullYear()}年${pad(date.getMonth() + 1)}月${pad(date.getDate())}日 ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+
+  const options: Intl.DateTimeFormatOptions = {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hourCycle: 'h23'
+  };
+
+  try {
+    return new Intl.DateTimeFormat(language, options).format(date);
+  } catch {
+    return new Intl.DateTimeFormat('zh-CN', options).format(date);
+  }
 }

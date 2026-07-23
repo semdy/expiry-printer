@@ -100,6 +100,26 @@ function gbkHex(value: string) {
   return iconv.encode(value, 'gbk').toString('hex');
 }
 
+test('移动端标签时间按所选语言的地区习惯格式化', async ({ page }) => {
+  await page.goto(MOBILE_URL);
+
+  const formattedDates = await page.evaluate(async () => {
+    const { formatFullLabelDate } = await import('/src/printerService.ts');
+    const value = '2026-07-23T14:05:04';
+    return {
+      simplifiedChinese: formatFullLabelDate(value, 'zh-CN'),
+      traditionalChinese: formatFullLabelDate(value, 'zh-TW'),
+      english: formatFullLabelDate(value, 'en-US')
+    };
+  });
+
+  expect(formattedDates.simplifiedChinese).toMatch(/^2026.*07.*23/);
+  expect(formattedDates.traditionalChinese).toMatch(/^2026.*07.*23/);
+  expect(formattedDates.english).toMatch(/^07.*23.*2026/);
+  expect(formattedDates.english).toContain('14:05:04');
+  expect(formattedDates.english).not.toMatch(/\b(?:AM|PM)\b/);
+});
+
 test('移动端支持切换英文并记住语言选择', async ({ page }) => {
   await page.goto(MOBILE_URL);
   await page.evaluate(() => window.localStorage.clear());
