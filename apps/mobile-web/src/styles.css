@@ -32,13 +32,12 @@ body {
 
 .adm-nav-bar-title {
   font-size: 17px;
-  font-weight: 600;
+  font-weight: bold;
 }
 
 .language-switcher {
-  max-width: 92px;
   height: 30px;
-  padding: 0 24px 0 8px;
+  padding: 0 16px 0 8px;
   border: 1px solid #d9d9e3;
   border-radius: 6px;
   background: #fff;
@@ -93,7 +92,7 @@ body {
 .filter-chip.active {
   background: #eef0ff;
   color: #5b5bd6;
-  font-weight: 600;
+  font-weight: bold;
 }
 
 .card,
@@ -113,7 +112,7 @@ body {
   justify-content: space-between;
   margin-bottom: 8px;
   font-size: 15px;
-  font-weight: 600;
+  font-weight: bold;
 }
 
 .card-count {
@@ -161,7 +160,7 @@ input[type='checkbox'] {
 .material-name {
   color: #1d2129;
   font-size: 16px;
-  font-weight: 600;
+  font-weight: bold;
 }
 
 .item-name-line {
@@ -204,7 +203,7 @@ input[type='checkbox'] {
   border-radius: 8px;
   margin-top: 14px;
   font-size: 15px;
-  font-weight: 600;
+  font-weight: bold;
 }
 
 .btn-secondary {
@@ -239,7 +238,7 @@ input[type='checkbox'] {
 
 .app-title {
   font-size: 15px;
-  font-weight: 600;
+  font-weight: bold;
 }
 
 .material-card {
@@ -314,7 +313,7 @@ input[type='checkbox'] {
   margin-bottom: 12px;
   color: #1d2129;
   font-size: 15px;
-  font-weight: 600;
+  font-weight: bold;
 }
 
 .label-preview {
@@ -327,7 +326,7 @@ input[type='checkbox'] {
 .label-name {
   color: #1d2129;
   font-size: 18px;
-  font-weight: 700;
+  font-weight: bold;
   text-align: center;
 }
 
@@ -353,7 +352,7 @@ input[type='checkbox'] {
 .label-grid strong {
   min-width: 0;
   color: #1d2129;
-  font-weight: 600;
+  font-weight: bold;
   text-align: right;
 }
 
@@ -367,7 +366,7 @@ input[type='checkbox'] {
 .quantity-title {
   color: #1d2129;
   font-size: 15px;
-  font-weight: 600;
+  font-weight: bold;
 }
 
 .quantity-desc {
@@ -427,7 +426,7 @@ input[type='checkbox'] {
   border: 0;
   border-radius: 6px;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: bold;
 }
 
 .mini-btn:disabled {
@@ -466,7 +465,7 @@ input[type='checkbox'] {
 
 .batch-toolbar-text {
   color: #1d2129;
-  font-weight: 600;
+  font-weight: bold;
 }
 
 .batch-toolbar-clear {
@@ -485,7 +484,7 @@ input[type='checkbox'] {
   border: 0;
   border-radius: 6px;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: bold;
 }
 
 .batch-btn-use {
@@ -529,7 +528,7 @@ input[type='checkbox'] {
 .print-batch-count {
   color: #1d2129;
   font-size: 14px;
-  font-weight: 700;
+  font-weight: bold;
 }
 
 .print-batch-clear {
@@ -546,7 +545,7 @@ input[type='checkbox'] {
   background: #5b5bd6;
   color: #fff;
   font-size: 15px;
-  font-weight: 700;
+  font-weight: bold;
 }
 
 .batch-print-modal {
@@ -564,7 +563,7 @@ input[type='checkbox'] {
 .modal-title {
   color: #1d2129;
   font-size: 17px;
-  font-weight: 700;
+  font-weight: bold;
 }
 
 .modal-close {
@@ -588,7 +587,7 @@ input[type='checkbox'] {
   margin-bottom: 8px;
   color: #4e5969;
   font-size: 14px;
-  font-weight: 600;
+  font-weight: bold;
 }
 
 .batch-print-list {
@@ -623,7 +622,7 @@ input[type='checkbox'] {
   margin-bottom: 2px;
   color: #1d2129;
   font-size: 14px;
-  font-weight: 600;
+  font-weight: bold;
 }
 
 .batch-desc {
@@ -656,7 +655,7 @@ input[type='checkbox'] {
   min-width: 28px;
   color: #1d2129;
   font-size: 14px;
-  font-weight: 700;
+  font-weight: bold;
   text-align: center;
 }
 
@@ -695,7 +694,7 @@ input[type='checkbox'] {
   border-radius: 8px;
   color: #1d2129;
   font-size: 16px;
-  font-weight: 600;
+  font-weight: bold;
 }
 
 .scrap-input:focus,
@@ -707,7 +706,7 @@ input[type='checkbox'] {
 .scrap-unit {
   color: #4e5969;
   font-size: 14px;
-  font-weight: 600;
+  font-weight: bold;
 }
 
 .scrap-textarea {
@@ -748,7 +747,7 @@ input[type='checkbox'] {
   margin-top: 12px;
   color: #1d2129;
   font-size: 14px;
-  font-weight: 700;
+  font-weight: bold;
 }
 
 .printer-section-title:first-child {
@@ -764,7 +763,7 @@ input[type='checkbox'] {
 .printer-form label {
   color: #4e5969;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: bold;
 }
 
 .printer-form .adm-input {
@@ -790,7 +789,7 @@ input[type='checkbox'] {
 
 .bluetooth-status strong {
   color: #1d2129;
-  font-weight: 700;
+  font-weight: bold;
 }
 
 .printer-tip {
@@ -874,7 +873,7 @@ input[type='checkbox'] {
   padding: 20px 20px 8px;
   color: #111827;
   font-size: 17px;
-  font-weight: 700;
+  font-weight: bold;
   text-align: center;
 }
 
