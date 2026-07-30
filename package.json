@@ -28,7 +28,8 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.61.1",
-    "prettier": "^3.9.6"
+    "prettier": "^3.9.6",
+    "vite-plugin-svgr": "^5.2.0"
   },
   "allowScripts": {
     "@prisma/client@5.22.0": true,
@@ -37,6 +38,7 @@
     "esbuild@0.25.12": true,
     "fsevents@2.3.3": true,
     "fsevents@2.3.2": true,
-    "prisma@5.22.0": true
+    "prisma@5.22.0": true,
+    "esbuild@0.27.7": true
   }
 }

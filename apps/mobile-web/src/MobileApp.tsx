@@ -1,6 +1,9 @@
 import { Button, NavBar, Popup, SearchBar, TabBar } from 'antd-mobile';
-import { AppOutline, ExclamationCircleOutline, SetOutline, UnorderedListOutline } from 'antd-mobile-icons';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import IconBox from './assets/svgs/box.svg?react';
+import IconBell from './assets/svgs/bell.svg?react';
+import IconPrinter from './assets/svgs/printer.svg?react';
+import IconSettings from './assets/svgs/settings.svg?react';
 import { apiGet, apiSend } from './api';
 import { hasNativeBluetoothPrinter, NativeBluetoothPrinter, type NativeBluetoothDevice } from './bluetoothPrinter';
 import { BatchPrintPopup, ScrapPopup } from './components/MobileViews';
@@ -693,10 +696,10 @@ export default function MobileApp() {
         )}
       </main>
       <TabBar activeKey={tab} onChange={(key) => changeTab(key as Tab)}>
-        <TabBar.Item key="print" icon={<AppOutline />} title="标签打印" />
-        <TabBar.Item key="warning" icon={<ExclamationCircleOutline />} title="效期预警" />
-        <TabBar.Item key="operation" icon={<UnorderedListOutline />} title="物料操作" />
-        <TabBar.Item key="printerSettings" icon={<SetOutline />} title="打印机设置" />
+        <TabBar.Item key="print" icon={<IconPrinter />} title="标签打印" />
+        <TabBar.Item key="warning" icon={<IconBell />} title="效期预警" />
+        <TabBar.Item key="operation" icon={<IconBox />} title="物料操作" />
+        <TabBar.Item key="printerSettings" icon={<IconSettings />} title="打印机设置" />
       </TabBar>
       {tab === 'print' && !printDetailMaterial && selectedMaterials.length > 0 && (
         <div className="print-batch-bar">
