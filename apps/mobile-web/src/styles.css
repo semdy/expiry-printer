@@ -95,6 +95,27 @@ body {
   font-weight: bold;
 }
 
+.warning-filter-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.warning-filter-badge {
+  display: inline-flex;
+  min-width: 17px;
+  height: 17px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+  border-radius: 9px;
+  background: #f53f3f;
+  color: #fff;
+  font-size: 11px;
+  font-weight: normal;
+  line-height: 17px;
+}
+
 .card,
 .panel {
   background: #fff;
@@ -726,6 +747,49 @@ input[type='checkbox'] {
   color: #1d2129;
   font-size: 14px;
   font-family: inherit;
+}
+
+.batch-operation-popup {
+  max-height: 80vh;
+}
+
+.batch-operation-list {
+  max-height: 52vh;
+  overflow-y: auto;
+}
+
+.batch-operation-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid #f2f3f5;
+}
+
+.batch-operation-material {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.batch-operation-material strong {
+  overflow: hidden;
+  color: #1d2129;
+  font-size: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.batch-operation-material small {
+  color: #86909c;
+  font-size: 12px;
+}
+
+.batch-operation-input {
+  width: 90px;
 }
 
 .printer-row {

@@ -6,7 +6,7 @@ import IconPrinter from './assets/svgs/printer.svg?react';
 import IconSettings from './assets/svgs/settings.svg?react';
 import { apiGet, apiSend } from './api';
 import { hasNativeBluetoothPrinter, NativeBluetoothPrinter, type NativeBluetoothDevice } from './bluetoothPrinter';
-import { BatchPrintPopup, ScrapPopup } from './components/MobileViews';
+import { BatchOperationPopup, BatchPrintPopup, ScrapPopup, UsePopup } from './components/MobileViews';
 import LanguageSwitcher from './components/LanguageSwitcher';
 import { addLife, labelMaterialType, toggleId } from './materialUtils';
 import NativeBridge from './nativeBridge';
@@ -42,9 +42,14 @@ export default function MobileApp() {
   const [batchPrintOpen, setBatchPrintOpen] = useState(false);
   const [batchPrintQuantities, setBatchPrintQuantities] = useState<Record<number, number>>({});
   const [currentOpened, setCurrentOpened] = useState<OpenedMaterial | null>(null);
+  const [useOpen, setUseOpen] = useState(false);
+  const [useQuantity, setUseQuantity] = useState('1');
   const [scrapOpen, setScrapOpen] = useState(false);
   const [scrapQuantity, setScrapQuantity] = useState('1');
   const [scrapRemark, setScrapRemark] = useState('');
+  const [batchOperation, setBatchOperation] = useState<'use' | 'scrap' | null>(null);
+  const [batchOperationItems, setBatchOperationItems] = useState<OpenedMaterial[]>([]);
+  const [batchOperationQuantities, setBatchOperationQuantities] = useState<Record<number, string>>({});
   const [actionConfirm, setActionConfirm] = useState<null | {
     title: string;
     content: string;
@@ -278,19 +283,37 @@ export default function MobileApp() {
     await loadOpened();
   }
 
-  async function useOpened(item: OpenedMaterial) {
+  function openUse(item: OpenedMaterial) {
     if (item.computedStatus === 'expired') {
       showNotice('已过期物料不能使用，仅可废弃', 'warning');
       return;
     }
+    setCurrentOpened(item);
+    setUseQuantity('1');
+    setUseOpen(true);
+  }
+
+  async function confirmUse() {
+    if (!currentOpened) return;
+    const quantity = Number(useQuantity);
+    if (!Number.isInteger(quantity) || quantity < 1) {
+      showNotice('请输入有效的使用数量', 'warning');
+      return;
+    }
     const ok = await requestConfirm({
       title: '确认使用',
-      content: t('确定要使用“{name}”吗？', { name: item.material.name }),
+      content: t('确定要使用“{name}”吗？使用数量：{quantity}{unit}', {
+        name: currentOpened.material.name,
+        quantity,
+        unit: currentOpened.material.unit
+      }),
       confirmText: '确认使用'
     });
     if (!ok) return;
-    await apiSend(`/api/opened-materials/${item.id}/use`, 'POST');
+    await apiSend(`/api/opened-materials/${currentOpened.id}/use`, 'POST', { quantity });
     showNotice('使用成功', 'success');
+    setUseOpen(false);
+    setCurrentOpened(null);
     await loadOpened();
   }
 
@@ -362,47 +385,57 @@ export default function MobileApp() {
     await loadOpened();
   }
 
-  async function batchUse() {
+  function openBatchOperation(action: 'use' | 'scrap') {
     const rows = openedMaterials.filter((item) => selectedOpened.includes(item.id));
     if (!rows.length) {
       showNotice('请先选择物料', 'warning');
       return;
     }
-    if (rows.some((item) => item.computedStatus === 'expired')) {
+    if (action === 'use' && rows.some((item) => item.computedStatus === 'expired')) {
       showNotice('已过期物料不能使用，仅可废弃', 'warning');
       return;
     }
-    const ok = await requestConfirm({
-      title: '确认批量使用',
-      content: t('确定要批量使用已选择的 {count} 个物料吗？', { count: rows.length }),
-      confirmText: '确认使用'
-    });
-    if (!ok) return;
-    await apiSend('/api/opened-materials/batch-use', 'POST', { ids: rows.map((item) => item.id) });
-    setSelectedOpened([]);
-    showNotice('批量使用成功', 'success');
-    await loadOpened();
+    setBatchOperation(action);
+    setBatchOperationItems(rows);
+    setBatchOperationQuantities(Object.fromEntries(rows.map((item) => [item.id, '1'])));
   }
 
-  async function batchScrap() {
-    const rows = openedMaterials.filter((item) => selectedOpened.includes(item.id));
-    if (!rows.length) {
-      showNotice('请先选择物料', 'warning');
+  async function confirmBatchOperation() {
+    if (!batchOperation || !batchOperationItems.length) return;
+    const items = batchOperationItems.map((item) => ({
+      id: item.id,
+      quantity: Number(batchOperationQuantities[item.id])
+    }));
+    if (items.some((item) => !Number.isInteger(item.quantity) || item.quantity < 1)) {
+      showNotice(batchOperation === 'use' ? '请输入有效的使用数量' : '请输入有效的废弃数量', 'warning');
       return;
     }
-    const ok = await requestConfirm({
-      title: '确认批量废弃',
-      content: t('确定要批量废弃已选择的 {count} 个物料吗？每个物料默认废弃数量为 1。', {
-        count: rows.length
-      }),
-      confirmText: '确认废弃'
-    });
+    const ok = await requestConfirm(
+      batchOperation === 'use'
+        ? {
+            title: '确认批量使用',
+            content: t('确定要批量使用已选择的 {count} 个物料吗？已按填写数量执行。', {
+              count: items.length
+            }),
+            confirmText: '确认使用'
+          }
+        : {
+            title: '确认批量废弃',
+            content: t('确定要批量废弃已选择的 {count} 个物料吗？已按填写数量执行。', {
+              count: items.length
+            }),
+            confirmText: '确认废弃'
+          }
+    );
     if (!ok) return;
-    await apiSend('/api/opened-materials/batch-scrap', 'POST', {
-      items: rows.map((item) => ({ id: item.id, quantity: 1, remark: '批量废弃' }))
+    await apiSend(`/api/opened-materials/batch-${batchOperation}`, 'POST', {
+      items: items.map((item) => ({ ...item, ...(batchOperation === 'scrap' ? { remark: '批量废弃' } : {}) }))
     });
     setSelectedOpened([]);
-    showNotice('批量废弃成功', 'success');
+    setBatchOperation(null);
+    setBatchOperationItems([]);
+    setBatchOperationQuantities({});
+    showNotice(batchOperation === 'use' ? '批量使用成功' : '批量废弃成功', 'success');
     await loadOpened();
   }
 
@@ -645,7 +678,7 @@ export default function MobileApp() {
             status={warningStatus}
             onKeywordChange={setOpenedKeyword}
             onStatusChange={setWarningStatus}
-            onUse={useOpened}
+            onUse={openUse}
             onScrap={openScrap}
             onReprint={reprintOpened}
           />
@@ -661,14 +694,14 @@ export default function MobileApp() {
             onCategoryChange={setOperationCategory}
             onSelectionClear={() => setSelectedOpened([])}
             onToggle={(id) => toggleId(selectedOpened, setSelectedOpened, id)}
-            onUse={useOpened}
+            onUse={openUse}
             onScrap={openScrap}
             onReprint={reprintOpened}
             onBatchUse={() => {
-              void batchUse();
+              openBatchOperation('use');
             }}
             onBatchScrap={() => {
-              void batchScrap();
+              openBatchOperation('scrap');
             }}
             onBatchReprint={() => {
               void batchReprint();
@@ -735,6 +768,29 @@ export default function MobileApp() {
         onClose={() => setScrapOpen(false)}
         onConfirm={() => {
           void confirmScrap();
+        }}
+      />
+      <UsePopup
+        visible={useOpen}
+        item={currentOpened}
+        quantity={useQuantity}
+        onQuantityChange={setUseQuantity}
+        onClose={() => setUseOpen(false)}
+        onConfirm={() => {
+          void confirmUse();
+        }}
+      />
+      <BatchOperationPopup
+        visible={batchOperation !== null}
+        action={batchOperation || 'use'}
+        items={batchOperationItems}
+        quantities={batchOperationQuantities}
+        onQuantityChange={(id, value) =>
+          setBatchOperationQuantities((current) => ({ ...current, [id]: value }))
+        }
+        onClose={() => setBatchOperation(null)}
+        onConfirm={() => {
+          void confirmBatchOperation();
         }}
       />
       {actionConfirm && (

@@ -1,4 +1,5 @@
 import { Popup, Stepper } from 'antd-mobile';
+import type { ReactNode } from 'react';
 import { addLife, formatDate, statusText, unitText } from '../materialUtils';
 import type { Material, OpenedMaterial } from '../types';
 
@@ -11,7 +12,7 @@ function FilterChips({
   items: string[];
   value: string;
   onChange: (value: string) => void;
-  labels?: Record<string, string>;
+  labels?: Record<string, ReactNode>;
 }) {
   return (
     <div className="filter-row">
@@ -250,6 +251,128 @@ function ScrapPopup({
   );
 }
 
+function UsePopup({
+  visible,
+  item,
+  quantity,
+  onQuantityChange,
+  onClose,
+  onConfirm
+}: {
+  visible: boolean;
+  item: OpenedMaterial | null;
+  quantity: string;
+  onQuantityChange: (value: string) => void;
+  onClose: () => void;
+  onConfirm: () => void;
+}) {
+  return (
+    <Popup visible={visible} onMaskClick={onClose} bodyStyle={{ borderRadius: '8px 8px 0 0', padding: 0 }}>
+      <div className="scrap-popup">
+        <div className="modal-header">
+          <div className="modal-title">物料使用</div>
+          <button className="modal-close" onClick={onClose}>
+            ×
+          </button>
+        </div>
+        <div className="modal-body">
+          <div className="material-desc">{item ? `${item.material.name} ${item.material.code}` : ''}</div>
+          <label className="scrap-field">
+            <span className="form-label">使用数量</span>
+            <div className="scrap-quantity-row">
+              <input
+                className="scrap-input"
+                name="useQuantity"
+                inputMode="numeric"
+                min="1"
+                step="1"
+                type="number"
+                value={quantity}
+                onChange={(event) => onQuantityChange(event.target.value)}
+              />
+              <span className="scrap-unit">{item?.material.unit || ''}</span>
+            </div>
+          </label>
+        </div>
+        <div className="modal-actions">
+          <button className="btn btn-secondary" onClick={onClose}>
+            取消
+          </button>
+          <button className="btn btn-primary" onClick={onConfirm}>
+            确认使用
+          </button>
+        </div>
+      </div>
+    </Popup>
+  );
+}
+
+function BatchOperationPopup({
+  visible,
+  action,
+  items,
+  quantities,
+  onQuantityChange,
+  onClose,
+  onConfirm
+}: {
+  visible: boolean;
+  action: 'use' | 'scrap';
+  items: OpenedMaterial[];
+  quantities: Record<number, string>;
+  onQuantityChange: (id: number, value: string) => void;
+  onClose: () => void;
+  onConfirm: () => void;
+}) {
+  const title = action === 'use' ? '批量使用' : '批量废弃';
+  const confirmText = action === 'use' ? '确认使用' : '确认废弃';
+  return (
+    <Popup visible={visible} onMaskClick={onClose} bodyStyle={{ borderRadius: '8px 8px 0 0', padding: 0 }}>
+      <div className="scrap-popup batch-operation-popup">
+        <div className="modal-header">
+          <div className="modal-title">{title}</div>
+          <button className="modal-close" onClick={onClose}>
+            ×
+          </button>
+        </div>
+        <div className="modal-body batch-operation-list">
+          {items.map((item) => (
+            <label className="batch-operation-item" key={item.id}>
+              <span className="batch-operation-material">
+                <strong>{item.material.name}</strong>
+                <small>{item.material.code}</small>
+              </span>
+              <span className="scrap-quantity-row">
+                <input
+                  className="scrap-input batch-operation-input"
+                  aria-label={
+                    action === 'use' ? t('{name}使用数量', { name: item.material.name }) : t('{name}废弃数量', { name: item.material.name })
+                  }
+                  inputMode="numeric"
+                  min="1"
+                  step="1"
+                  type="number"
+                  value={quantities[item.id] || '1'}
+                  onChange={(event) => onQuantityChange(item.id, event.target.value)}
+                />
+                <span className="scrap-unit">{item.material.unit}</span>
+              </span>
+            </label>
+          ))}
+        </div>
+        <div className="modal-actions">
+          <button className="btn btn-secondary" onClick={onClose}>
+            取消
+          </button>
+          <button className="btn btn-primary" onClick={onConfirm}>
+            {confirmText}
+          </button>
+        </div>
+      </div>
+    </Popup>
+  );
+}
+
 function OpenedCard({
   item,
   onUse,
@@ -363,4 +486,14 @@ function InfoRow({ label, value, danger }: { label: string; value: string; dange
   );
 }
 
-export { BatchPrintPopup, FilterChips, MaterialPrintCard, OpenedCard, OpenedOperationCard, PrintDetail, ScrapPopup };
+export {
+  BatchOperationPopup,
+  BatchPrintPopup,
+  FilterChips,
+  MaterialPrintCard,
+  OpenedCard,
+  OpenedOperationCard,
+  PrintDetail,
+  ScrapPopup,
+  UsePopup
+};

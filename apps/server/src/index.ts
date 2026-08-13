@@ -435,6 +435,7 @@ app.get(
 app.post(
   '/api/opened-materials/:id/use',
   wrap(async (req, res) => {
+    const payload = z.object({ quantity: z.coerce.number().int().min(1).default(1) }).parse(req.body ?? {});
     await refreshOpenedStatuses();
     const opened = await prisma.openedMaterial.findUnique({
       where: { id: Number(req.params.id) },
@@ -451,7 +452,7 @@ app.post(
         openedMaterialId: opened.id,
         organizationId: opened.organizationId,
         operationType: 'use',
-        quantity: 1,
+        quantity: payload.quantity,
         unit: opened.material.unit,
         operator: defaultOperator
       }
@@ -497,19 +498,27 @@ app.post(
 app.post(
   '/api/opened-materials/batch-use',
   wrap(async (req, res) => {
-    const ids = z.object({ ids: z.array(z.coerce.number().int().positive()).min(1) }).parse(req.body).ids;
+    const payload = z
+      .union([
+        z.object({
+          items: z.array(z.object({ id: z.coerce.number().int().positive(), quantity: z.coerce.number().int().min(1) })).min(1)
+        }),
+        z.object({ ids: z.array(z.coerce.number().int().positive()).min(1) })
+      ])
+      .parse(req.body);
+    const items = 'items' in payload ? payload.items : payload.ids.map((id) => ({ id, quantity: 1 }));
     const results = [];
-    for (const id of ids) {
-      const opened = await prisma.openedMaterial.findUnique({ where: { id }, include: { material: true } });
+    for (const item of items) {
+      const opened = await prisma.openedMaterial.findUnique({ where: { id: item.id }, include: { material: true } });
       if (!opened || getComputedStatus(opened) === 'expired') continue;
-      results.push(await prisma.openedMaterial.update({ where: { id }, data: { status: 'used' } }));
+      results.push(await prisma.openedMaterial.update({ where: { id: item.id }, data: { status: 'used' } }));
       await prisma.operationLog.create({
         data: {
           materialId: opened.materialId,
           openedMaterialId: opened.id,
           organizationId: opened.organizationId,
           operationType: 'use',
-          quantity: 1,
+          quantity: item.quantity,
           unit: opened.material.unit,
           operator: defaultOperator
         }

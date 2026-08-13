@@ -269,7 +269,7 @@ test('移动端批量标签打印已连接蓝牙时不创建浏览器打印任�
   await expect.poll(() => bluetoothCommand(page)).toContain('PRINT 1,1');
 });
 
-test('移动端批量废弃需要确认弹窗，确认后才执行', async ({ page, request }) => {
+test('移动端批量废弃可以分别填写数量，二次确认后执行', async ({ page, request }) => {
   const material = await createMaterial(request, 'MSC');
   await printMaterial(request, material.id);
   await printMaterial(request, material.id);
@@ -287,11 +287,86 @@ test('移动端批量废弃需要确认弹窗，确认后才执行', async ({ pa
   await expect(page.getByText('已选 2 项')).toBeVisible();
 
   await page.getByRole('button', { name: '批量废弃' }).click();
-  await expect(page.getByText('确认批量废弃')).toBeVisible();
-  await expect(page.getByText('确定要批量废弃已选择的 2 个物料吗？每个物料默认废弃数量为 1。')).toBeVisible();
+  const batchPopup = page.locator('.batch-operation-popup');
+  await expect(batchPopup.getByText('批量废弃')).toBeVisible();
+  await expect(batchPopup.locator('.batch-operation-item')).toHaveCount(2);
+  await batchPopup.locator('.batch-operation-input').nth(0).fill('20');
+  await batchPopup.locator('.batch-operation-input').nth(1).fill('30');
+  await batchPopup.getByRole('button', { name: '确认废弃' }).click();
+
+  await expect(page.locator('.action-confirm-title').getByText('确认批量废弃')).toBeVisible();
+  await expect(page.getByText('确定要批量废弃已选择的 2 个物料吗？已按填写数量执行。')).toBeVisible();
 
   await page.locator('.action-confirm-dialog').getByRole('button', { name: '确认废弃' }).click();
   await expect(page.getByText('批量废弃成功')).toBeVisible();
+
+  const scrapsResponse = await request.get('http://127.0.0.1:3000/api/logs/scraps');
+  expect(scrapsResponse.ok()).toBeTruthy();
+  const scrapLogs = await scrapsResponse.json();
+  const quantities = scrapLogs
+    .filter((item: any) => item.material.code === material.code)
+    .map((item: any) => item.quantity)
+    .sort((left: number, right: number) => left - right);
+  expect(quantities).toEqual([20, 30]);
+});
+
+test('移动端效期预警使用可以填写数量并二次确认', async ({ page, request }) => {
+  const material = await createMaterial(request, 'MSU', { unit: '包' });
+  const { openedMaterial } = await printMaterial(request, material.id);
+
+  await page.goto(MOBILE_URL);
+  await page.getByText('效期预警').first().click();
+  await page.getByPlaceholder('搜索物料名称/编码').fill(material.code);
+
+  const card = page.locator('.warning-row').filter({ hasText: material.code }).first();
+  await card.getByRole('button', { name: '使用' }).click();
+
+  const usePopup = page.locator('.scrap-popup').filter({ hasText: '物料使用' });
+  await expect(usePopup.getByText(`${material.name} ${material.code}`)).toBeVisible();
+  await usePopup.locator('input[name="useQuantity"]').fill('12');
+  await usePopup.getByRole('button', { name: '确认使用' }).click();
+
+  await expect(page.getByText(`确定要使用“${material.name}”吗？使用数量：12包`)).toBeVisible();
+  const useResponsePromise = page.waitForResponse(
+    (response) => response.url().endsWith(`/api/opened-materials/${openedMaterial.id}/use`) && response.request().method() === 'POST'
+  );
+  await page.locator('.action-confirm-dialog').getByRole('button', { name: '确认使用' }).click();
+  const useResponse = await useResponsePromise;
+  expect(useResponse.ok()).toBeTruthy();
+  expect((await useResponse.json()).operationLog.quantity).toBe(12);
+  await expect(page.getByText('使用成功')).toBeVisible();
+});
+
+test('移动端批量使用可以分别填写数量', async ({ page, request }) => {
+  const firstMaterial = await createMaterial(request, 'MBU', { unit: '瓶' });
+  const secondMaterial = await createMaterial(request, 'MBV', { unit: '盒' });
+  const firstOpened = (await printMaterial(request, firstMaterial.id)).openedMaterial;
+  const secondOpened = (await printMaterial(request, secondMaterial.id)).openedMaterial;
+
+  await page.goto(MOBILE_URL);
+  await page.getByText('物料操作').first().click();
+  await page.locator('.material-card').filter({ hasText: firstMaterial.code }).locator('input[type="checkbox"]').check();
+  await page.locator('.material-card').filter({ hasText: secondMaterial.code }).locator('input[type="checkbox"]').check();
+  await page.getByRole('button', { name: '批量使用' }).click();
+
+  const batchPopup = page.locator('.batch-operation-popup');
+  await batchPopup.getByLabel(`${firstMaterial.name}使用数量`).fill('4');
+  await batchPopup.getByLabel(`${secondMaterial.name}使用数量`).fill('7');
+  await batchPopup.getByRole('button', { name: '确认使用' }).click();
+
+  const batchResponsePromise = page.waitForResponse(
+    (response) => response.url().endsWith('/api/opened-materials/batch-use') && response.request().method() === 'POST'
+  );
+  await page.locator('.action-confirm-dialog').getByRole('button', { name: '确认使用' }).click();
+  const batchResponse = await batchResponsePromise;
+  expect(batchResponse.ok()).toBeTruthy();
+  expect(JSON.parse(batchResponse.request().postData() || '{}').items).toEqual(
+    expect.arrayContaining([
+      { id: firstOpened.id, quantity: 4 },
+      { id: secondOpened.id, quantity: 7 }
+    ])
+  );
+  await expect(page.getByText('批量使用成功')).toBeVisible();
 });
 
 test('移动端单个废弃可以填写数量，废弃次数仍为一次', async ({ page, request }) => {

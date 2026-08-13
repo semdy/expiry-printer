@@ -30,7 +30,19 @@ export default function WarningTab({
       </div>
       <FilterChips
         items={['all', 'warning', 'expired']}
-        labels={{ all: '全部', warning: '即将过期', expired: '已过期' }}
+        labels={{
+          all: '全部',
+          warning: (
+            <span className="warning-filter-label">
+              即将过期<span className="warning-filter-badge">0</span>
+            </span>
+          ),
+          expired: (
+            <span className="warning-filter-label">
+              已过期<span className="warning-filter-badge">0</span>
+            </span>
+          )
+        }}
         value={status}
         onChange={onStatusChange}
       />
