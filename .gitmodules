@@ -1,0 +1,6 @@
+[submodule "web-library"]
+	path = web-library
+	url = https://reader:glpat-neV2LAZFyf6NOWDYSDRFBG86MQp1OjFzCA.01.0y11qnr8l@git.imsdom.com/ims/sh/client/web-library.git
+[submodule "web-business"]
+	path = web-business
+	url = https://reader:glpat-3-AopDzU54m2Y-E4Kg-7PW86MQp1OjFyCA.01.0y00xtpg5@git.imsdom.com/ims/sh/client/web-business.git
