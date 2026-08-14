@@ -1,9 +1,8 @@
+import { useRef, useState } from 'react';
 import { ErrorBlock, SearchBar } from 'antd-mobile';
 import OrganizationSelector, { SCREEN, Modal, type CheckItem, type DataProviderRef } from '@imsfe/organization-selector'
 import { FilterChips, OpenedCard } from '../components/MobileViews';
 import type { OpenedMaterial } from '../types';
-import { useRef, useState } from 'react';
-import LocaleWrapper from 'shared/i18n/LocaleWrapper'
 
 type WarningTabProps = {
   items: OpenedMaterial[];
@@ -84,18 +83,16 @@ export default function WarningTab({
       ) : (
         <ErrorBlock status="empty" />
       )}
-      <LocaleWrapper>
-        <Modal
-          ref={orgModalRef}
-          visible={orgModalVisible}
-          config={orgConfig}
-          onCancel={() => setOrgModalVisible(false)}
-          onConfirm={handleConfirm}
-          onVisibleChange={handleVisibleChange}
-        >
-          <OrganizationSelector />
-        </Modal>
-      </LocaleWrapper>
+      <Modal
+        ref={orgModalRef}
+        visible={orgModalVisible}
+        config={orgConfig}
+        onCancel={() => setOrgModalVisible(false)}
+        onConfirm={handleConfirm}
+        onVisibleChange={handleVisibleChange}
+      >
+        <OrganizationSelector />
+      </Modal>
     </>
   );
 }

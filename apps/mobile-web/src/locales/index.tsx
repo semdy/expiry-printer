@@ -13,8 +13,10 @@ export const messages = {
 
 export type SupportLocale = keyof typeof messages;
 
+const localeStorageKey = 'ims_locale';
+
 export function getClientLocale(): SupportLocale {
-  const localeFromStorage = localStorage.getItem('locale');
+  const localeFromStorage = localStorage.getItem(localeStorageKey);
   if (localeFromStorage) {
     return localeFromStorage as SupportLocale;
   }
@@ -48,8 +50,9 @@ export const languageList: {
 export function changeLanguage(lang: SupportLocale) {
   if (locale === lang) return;
   locale = lang;
-  localStorage.setItem('locale', lang);
+  localStorage.setItem(localeStorageKey, lang);
   i18n.changeLanguage(locale);
+  window.dispatchEvent(new CustomEvent('locale-changed', { detail: { locale } }));
 }
 
 function formatMessage(id: string): string;
