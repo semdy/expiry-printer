@@ -14,7 +14,7 @@
   },
   "dependencies": {
     "@imsfe/organization-selector": "0.1.1",
-    "@vitejs/plugin-react": "^4.3.4",
+    "@vitejs/plugin-react": "^6.0.5",
     "antd-mobile": "^5.38.2",
     "i18next": "^26.3.6",
     "ims-data": "1.0.0",
@@ -26,7 +26,8 @@
     "@types/react": "^19.0.2",
     "@types/react-dom": "^19.0.2",
     "extract-i18n-plugin": "^2.0.0",
-    "typescript": "^5.7.2",
-    "vite": "^6.0.5"
+    "typescript": "^7.0.2",
+    "vite": "^8.2.1",
+    "vite-plugin-svgr": "^5.2.0"
   }
 }

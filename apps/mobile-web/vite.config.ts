@@ -111,12 +111,22 @@ export default defineConfig(({ command }) => ({
     ]
   },
   build: {
-    rollupOptions: {
+    rolldownOptions: {
       output: {
-        manualChunks(id) {
-          if (id.includes('/node_modules/')) {
-            return 'vendor';
-          }
+        codeSplitting: {
+          groups: [
+            {
+              name: 'vendor',
+              test: /node_modules/,
+              priority: 10
+            },
+            {
+              name: 'common',
+              minShareCount: 2,
+              minSize: 10 * 1024,
+              priority: 5
+            }
+          ]
         }
       }
     }
