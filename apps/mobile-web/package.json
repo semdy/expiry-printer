@@ -26,6 +26,7 @@
     "@types/react": "^19.0.2",
     "@types/react-dom": "^19.0.2",
     "extract-i18n-plugin": "^2.0.0",
+    "less": "^4.9.0",
     "typescript": "^7.0.2",
     "vite": "^8.2.1",
     "vite-plugin-svgr": "^5.2.0"
