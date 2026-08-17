@@ -120,12 +120,12 @@ export default defineConfig(({ command }) => ({
               test: /node_modules/,
               priority: 10
             },
-            {
-              name: 'common',
-              minShareCount: 2,
-              minSize: 10 * 1024,
-              priority: 5
-            }
+            // {
+            //   name: 'common',
+            //   minShareCount: 2,
+            //   minSize: 10 * 1024,
+            //   priority: 5
+            // }
           ]
         }
       }
