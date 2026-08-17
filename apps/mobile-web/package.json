@@ -13,11 +13,11 @@
     "native:ios": "npm run native:sync && open ios/App/App.xcodeproj"
   },
   "dependencies": {
+    "@imsfe/organization-selector": "0.1.1",
     "@vitejs/plugin-react": "^4.3.4",
     "antd-mobile": "^5.38.2",
-    "ims-data": "1.0.0",
-    "@imsfe/organization-selector": "0.1.1",
     "i18next": "^26.3.6",
+    "ims-data": "1.0.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-i18next": "^17.0.11"
