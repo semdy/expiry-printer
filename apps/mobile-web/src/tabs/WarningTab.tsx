@@ -1,8 +1,9 @@
-import { useRef, useState } from 'react';
 import { ErrorBlock, SearchBar } from 'antd-mobile';
-import OrganizationSelector, { SCREEN, Modal, type CheckItem, type DataProviderRef } from '@imsfe/organization-selector'
-import { FilterChips, OpenedCard } from '../components/MobileViews';
-import type { OpenedMaterial } from '../types';
+import type { CheckItem } from '@imsfe/organization-selector';
+import { useState } from 'react';
+import { FilterChips, OpenedCard } from '@/components/MobileViews';
+import OrganizationPicker from '@/components/OrganizationPicker';
+import type { OpenedMaterial } from '@/types';
 
 type WarningTabProps = {
   items: OpenedMaterial[];
@@ -25,38 +26,13 @@ export default function WarningTab({
   onScrap,
   onReprint
 }: WarningTabProps) {
-  const orgModalRef = useRef<DataProviderRef>(null)
-  const [orgModalVisible, setOrgModalVisible] = useState(false)
-  const [orgCheckList, setOrgCheckList] = useState<CheckItem[]>([])
-  const [orgConfig] = useState({
-    showHomeSearch: false,
-    showOrgEntry: false,
-    showGroupEntry: false,
-    showRecentContacts: false,
-    canSelectRegion: true,
-    canSelectShop: true,
-    canSelectMember: false,
-    showNoShop: false,
-    initialScreen: SCREEN.SHOP
-  })
-
-  const handleConfirm = (list: CheckItem[] | CheckItem) => {
-    setOrgModalVisible(prev => !prev)
-    console.log(list)
-    setOrgCheckList(list as CheckItem[])
-  }
-
-  const handleVisibleChange = (visible: boolean) => {
-    if (visible) {
-      orgModalRef.current?.setDefault(orgCheckList)
-    }
-  }
+  const [organizations, setOrganizations] = useState<CheckItem[]>([]);
 
   return (
     <>
-      <div className="search-box">
+      <div className="search-box warning-search-box">
         <SearchBar value={keyword} onChange={onKeywordChange} placeholder="搜索物料名称/编码" />
-        <button onClick={() => setOrgModalVisible(true)}>+</button>
+        <OrganizationPicker value={organizations} onChange={setOrganizations} />
       </div>
       <FilterChips
         items={['all', 'warning', 'expired']}
@@ -83,16 +59,6 @@ export default function WarningTab({
       ) : (
         <ErrorBlock status="empty" />
       )}
-      <Modal
-        ref={orgModalRef}
-        visible={orgModalVisible}
-        config={orgConfig}
-        onCancel={() => setOrgModalVisible(false)}
-        onConfirm={handleConfirm}
-        onVisibleChange={handleVisibleChange}
-      >
-        <OrganizationSelector />
-      </Modal>
     </>
   );
 }

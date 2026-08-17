@@ -65,6 +65,130 @@ body {
   --padding-left: 12px;
 }
 
+.warning-search-box {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.warning-search-box .adm-search-bar {
+  min-width: 0;
+  flex: 1;
+}
+
+.org-selector {
+  flex: 0 0 auto;
+}
+
+.org-selector-btn {
+  position: relative;
+  display: flex;
+  min-width: 116px;
+  height: 42px;
+  align-items: center;
+  gap: 7px;
+  padding: 0 9px;
+  border: 1px solid #d9dcff;
+  border-radius: 9px;
+  background: linear-gradient(135deg, #f8f8ff 0%, #eef0ff 100%);
+  box-shadow: 0 2px 8px rgb(91 91 214 / 10%);
+  color: #4c4cc5;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.org-selector-btn:active {
+  transform: scale(0.97);
+  border-color: #9fa4f5;
+  box-shadow: 0 1px 3px rgb(91 91 214 / 12%);
+}
+
+.org-selector-btn:focus-visible {
+  outline: 2px solid #7378e8;
+  outline-offset: 2px;
+}
+
+.org-selector-btn.is-selected {
+  border-color: #aeb2f5;
+  background: linear-gradient(135deg, #f2f3ff 0%, #e8eaff 100%);
+}
+
+.org-selector-icon {
+  display: grid;
+  width: 27px;
+  height: 27px;
+  flex: 0 0 27px;
+  place-items: center;
+  border-radius: 8px;
+  background: #5b5bd6;
+  box-shadow: 0 3px 7px rgb(91 91 214 / 24%);
+  color: #fff;
+}
+
+.org-selector-icon svg {
+  width: 19px;
+  height: 19px;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.org-selector-copy {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.org-selector-title,
+.org-selector-hint {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.org-selector-title {
+  color: #3838ad;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 16px;
+}
+
+.org-selector-hint {
+  color: #8585ad;
+  font-size: 10px;
+  line-height: 13px;
+}
+
+.org-selector-chevron {
+  flex: 0 0 auto;
+  color: #8589d6;
+  font-size: 20px;
+  font-weight: 300;
+  line-height: 1;
+}
+
+@media (max-width: 360px) {
+  .org-selector-btn {
+    min-width: 104px;
+  }
+
+  .org-selector-icon {
+    width: 25px;
+    height: 25px;
+    flex-basis: 25px;
+  }
+
+  .org-selector-chevron {
+    display: none;
+  }
+}
+
 .filter-row {
   display: flex;
   gap: 8px;

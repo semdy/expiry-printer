@@ -1,5 +1,8 @@
 import { SearchBar } from 'antd-mobile';
+import type { CheckItem } from '@imsfe/organization-selector';
+import { useState } from 'react';
 import { FilterChips, OpenedOperationCard } from '../components/MobileViews';
+import OrganizationPicker from '../components/OrganizationPicker';
 import type { OpenedMaterial } from '../types';
 
 type OperationTabProps = {
@@ -37,10 +40,13 @@ export default function OperationTab({
   onBatchScrap,
   onBatchReprint
 }: OperationTabProps) {
+  const [organizations, setOrganizations] = useState<CheckItem[]>([]);
+
   return (
     <>
-      <div className="search-box">
+      <div className="search-box warning-search-box">
         <SearchBar value={keyword} onChange={onKeywordChange} placeholder="搜索物料名称/编码" />
+        <OrganizationPicker value={organizations} onChange={setOrganizations} />
       </div>
       <FilterChips items={categories} value={category} onChange={onCategoryChange} />
       {selectedIds.length > 0 && (

@@ -1,5 +1,8 @@
 import { SearchBar } from 'antd-mobile';
+import type { CheckItem } from '@imsfe/organization-selector';
+import { useState } from 'react';
 import { FilterChips, MaterialPrintCard, PrintDetail } from '../components/MobileViews';
+import OrganizationPicker from '../components/OrganizationPicker';
 import type { Material } from '../types';
 
 type PrintTabProps = {
@@ -33,6 +36,8 @@ export default function PrintTab({
   onQuantityChange,
   onPrint
 }: PrintTabProps) {
+  const [organizations, setOrganizations] = useState<CheckItem[]>([]);
+
   if (detailMaterial) {
     return (
       <PrintDetail
@@ -46,8 +51,9 @@ export default function PrintTab({
 
   return (
     <>
-      <div className="search-box">
+      <div className="search-box warning-search-box">
         <SearchBar value={keyword} onChange={onKeywordChange} placeholder="搜索物料名称/编码" />
+        <OrganizationPicker value={organizations} onChange={setOrganizations} />
       </div>
       <FilterChips items={categories} value={category} onChange={onCategoryChange} />
       <section className="card">
