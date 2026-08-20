@@ -74,7 +74,7 @@ async function requestPage(page: number, state: Pick<PrintTabState, 'categoryId'
   const hostInfo = await getHostInfo()
   const selectedOrganization = state.organizations[0]
   const shopId = selectedOrganization?.shopId || hostInfo.shopInfo.shopId
-  const departmentId = selectedOrganization?.departmentId || '0'
+  const departmentId = selectedOrganization?.shopId ? '0' : selectedOrganization?.departmentId || '0'
   const requestData = {
     page,
     pageSize,
@@ -129,7 +129,10 @@ export const usePrintTabStore = create<PrintTabState>()((set, get) => ({
         hasMore: materials.length < total
       })
     } catch {
-      // ims-data already displays the request error.
+      set((state) => ({
+        ...state,
+        hasMore: false
+      }))
     } finally {
       if (version === requestVersion) set({ loading: false })
     }

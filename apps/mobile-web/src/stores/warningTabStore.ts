@@ -124,7 +124,7 @@ async function requestPage(page: number, state: Pick<WarningTabState, 'categoryI
     page,
     pageSize,
     shopId: selectedOrganization?.shopId || hostInfo.shopInfo.shopId,
-    departmentId: selectedOrganization?.departmentId || '0',
+    departmentId: selectedOrganization?.shopId ? '0' : selectedOrganization?.departmentId || '0',
     keyword: state.keyword.trim() || undefined,
     categoryId: state.categoryId === 'all' ? undefined : state.categoryId
   }
@@ -165,7 +165,10 @@ export const useWarningTabStore = create<WarningTabState>()((set, get) => ({
       const total = Number(response.total) || 0
       set({ items, loaded: true, page: 1, total, hasMore: items.length < total })
     } catch {
-      // ims-data already displays the request error.
+      set((state) => ({
+        ...state,
+        hasMore: false
+      }))
     } finally {
       if (version === requestVersion) set({ loading: false })
     }
