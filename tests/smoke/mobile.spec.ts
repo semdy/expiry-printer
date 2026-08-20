@@ -130,7 +130,7 @@ test('移动端打印页按新接口分类查询并触底加载下一页', async
     materialRequests.push(params)
     const categoryId = params.categoryId || '1'
     const start = (params.page - 1) * params.pageSize
-    const list = Array.from({ length: 10 }, (_, index) => {
+    const list = Array.from({ length: params.pageSize }, (_, index) => {
       const number = start + index + 1
       return {
         id: `${categoryId}${number}`,
@@ -152,7 +152,7 @@ test('移动端打印页按新接口分类查询并触底加载下一页', async
         departmentId: '0'
       }
     })
-    await route.fulfill({ json: { code: 0, msg: 'ok', data: { list, total: '20' } } })
+    await route.fulfill({ json: { code: 0, msg: 'ok', data: { list, total: '40' } } })
   })
   await page.route('**/apigo/expiryPrint/v1/label_print', async (route) => {
     printRequest = route.request().postDataJSON()
@@ -167,7 +167,8 @@ test('移动端打印页按新接口分类查询并触底加载下一页', async
   await expect(page.getByRole('button', { name: '分类二' })).toBeVisible()
   await expect(page.locator('.item-row').filter({ hasText: 'C1-1 |' })).toBeVisible()
   expect(configRequest).toEqual({ kind: 'category', status: 1 })
-  expect(materialRequests[0]).toMatchObject({ page: 1, pageSize: 10, shopId: '1001', departmentId: '0', status: 1 })
+  expect(materialRequests[0]).toMatchObject({ page: 1, pageSize: 20, shopId: '1001', departmentId: '0' })
+  expect(materialRequests[0]).not.toHaveProperty('status')
   expect(materialRequests[0]).not.toHaveProperty('category_id')
   expect(materialRequests.filter((request) => request.page === 1 && !request.categoryId)).toHaveLength(1)
 
@@ -181,13 +182,136 @@ test('移动端打印页按新接口分类查询并触底加载下一页', async
   await expect
     .poll(() => materialRequests.some((request) => request.page === 2 && request.categoryId === '2'))
     .toBe(true)
-  const pageTwoMaterial = page.locator('.item-row').filter({ hasText: 'C2-20 |' })
+  const pageTwoMaterial = page.locator('.item-row').filter({ hasText: 'C2-40 |' })
   await expect(pageTwoMaterial).toBeVisible()
   await pageTwoMaterial.locator('.action-btn-primary').click()
   await page.getByRole('button', { name: '确认打印' }).click()
   await expect(page.getByText('打印成功')).toBeVisible()
-  expect(printRequest).toEqual({ items: [{ materialId: '220', printCount: 1 }] })
+  expect(printRequest).toEqual({ items: [{ materialId: '240', printCount: 1 }] })
   expect(printRequest).not.toHaveProperty('printed_at')
+})
+
+test('移动端预警页按新接口筛选分页并执行使用、废弃和补打', async ({ page }) => {
+  const warningRequests: Array<Record<string, any>> = []
+  const useRequests: Array<Record<string, any>> = []
+  const scrapRequests: Array<Record<string, any>> = []
+  const reprintRequests: Array<Record<string, any>> = []
+
+  await installMockBluetooth(page)
+  await page.route('**/apiuser/user/my/info', (route) =>
+    route.fulfill({ json: { code: 0, msg: 'ok', data: { shopId: '1001', shopName: '测试门店' } } })
+  )
+  await page.route('**/apigo/expiryPrint/v1/config_list', (route) =>
+    route.fulfill({
+      json: {
+        code: 0,
+        msg: 'ok',
+        data: {
+          list: [
+            { id: '1', kind: 'category', code: 'C1', name: '分类一', sort: 1, status: 1 },
+            { id: '2', kind: 'category', code: 'C2', name: '分类二', sort: 2, status: 1 }
+          ]
+        }
+      }
+    })
+  )
+  await page.route('**/apigo/expiryPrint/v1/warning_list', async (route) => {
+    const params = route.request().postDataJSON() as Record<string, any>
+    warningRequests.push(params)
+    const categoryId = params.categoryId || '1'
+    const start = (params.page - 1) * params.pageSize
+    const itemStatus = params.status === 3 ? 3 : 2
+    const list = Array.from({ length: params.pageSize }, (_, index) => {
+      const number = start + index + 1
+      return {
+        id: `${categoryId}${number}`,
+        materialId: `${categoryId}0${number}`,
+        materialCode: `W${categoryId}-${number}`,
+        materialName: `预警物料${number}`,
+        categoryName: categoryId === '2' ? '分类二' : '分类一',
+        typeName: '冷藏',
+        typeRemark: '0-4℃',
+        unitName: '盒',
+        openedAt: '1787155200',
+        expiresAt: '1787241600',
+        status: itemStatus,
+        statusName: itemStatus === 3 ? '已过期' : '即将过期',
+        quantity: '10',
+        remainingSeconds: itemStatus === 3 ? '0' : '7200',
+        operatorName: '测试员',
+        usedQuantity: '0',
+        scrappedQuantity: '0',
+        remainingQuantity: '10'
+      }
+    })
+    await route.fulfill({ json: { code: 0, msg: 'ok', data: { list, total: '40' } } })
+  })
+  await page.route('**/apigo/expiryPrint/v1/opened_batch_use', async (route) => {
+    useRequests.push(route.request().postDataJSON())
+    await route.fulfill({ json: { code: 0, msg: 'ok', data: {} } })
+  })
+  await page.route('**/apigo/expiryPrint/v1/opened_batch_scrap', async (route) => {
+    scrapRequests.push(route.request().postDataJSON())
+    await route.fulfill({ json: { code: 0, msg: 'ok', data: {} } })
+  })
+  await page.route('**/apigo/expiryPrint/v1/label_reprint', async (route) => {
+    reprintRequests.push(route.request().postDataJSON())
+    await route.fulfill({ json: { code: 0, msg: 'ok', data: {} } })
+  })
+
+  await page.goto(MOBILE_URL)
+  await connectMockPrinter(page)
+  await page.getByText('效期预警').first().click()
+  await expect(page.locator('.warning-row').filter({ hasText: /W1-1(?:\D|$)/ })).toBeVisible()
+  expect(warningRequests[0]).toMatchObject({
+    page: 1,
+    pageSize: 20,
+    shopId: '1001',
+    departmentId: '0',
+    status: 0
+  })
+  expect(
+    warningRequests.filter((request) => request.page === 1 && !request.categoryId && request.status === 0)
+  ).toHaveLength(1)
+
+  await page.getByRole('button', { name: '分类二' }).click()
+  await expect
+    .poll(() => warningRequests.some((request) => request.categoryId === '2' && request.page === 1))
+    .toBe(true)
+  await page.getByRole('button', { name: '已过期' }).click()
+  await expect
+    .poll(() =>
+      warningRequests.some((request) => request.categoryId === '2' && request.status === 3 && request.page === 1)
+    )
+    .toBe(true)
+  await page.getByRole('button', { name: '即将过期' }).click()
+  await expect(page.locator('.warning-row').filter({ hasText: /W2-1(?:\D|$)/ })).toBeVisible()
+
+  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight))
+  await expect
+    .poll(() =>
+      warningRequests.some((request) => request.categoryId === '2' && request.status === 2 && request.page === 2)
+    )
+    .toBe(true)
+  await expect(page.locator('.warning-row').filter({ hasText: 'W2-40' })).toBeVisible()
+
+  const card = page.locator('.warning-row').filter({ hasText: /W2-1(?:\D|$)/ })
+  await card.getByRole('button', { name: '使用' }).click()
+  await page.locator('.scrap-popup').getByRole('button', { name: '确认使用' }).click()
+  await page.locator('.action-confirm-dialog').getByRole('button', { name: '确认使用' }).click()
+  await expect.poll(() => useRequests.length).toBe(1)
+  expect(useRequests[0]).toEqual({ items: [{ openedMaterialId: '21', quantity: '1' }] })
+
+  await card.getByRole('button', { name: '废弃' }).click()
+  await page.locator('.scrap-popup').getByRole('button', { name: '确认废弃' }).click()
+  await page.locator('.action-confirm-dialog').getByRole('button', { name: '确认废弃' }).click()
+  await expect.poll(() => scrapRequests.length).toBe(1)
+  expect(scrapRequests[0]).toEqual({ items: [{ openedMaterialId: '21', quantity: '1' }], remark: '' })
+
+  await card.getByRole('button', { name: '补打' }).click()
+  await page.locator('.action-confirm-dialog').getByRole('button', { name: '确认补打' }).click()
+  await expect.poll(() => reprintRequests.length).toBe(1)
+  expect(reprintRequests[0]).toEqual({ openedMaterialId: '21' })
 })
 
 test('移动端切换业务 Tab 时各自接口只请求一次', async ({ page }) => {

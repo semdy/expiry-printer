@@ -1,7 +1,9 @@
 export type Tab = 'home' | 'print' | 'warning' | 'operation' | 'printerSettings'
 
+export type EntityId = string | number
+
 export type Material = {
-  id: number
+  id: EntityId
   code: string
   name: string
   category: string
@@ -41,12 +43,13 @@ export type MaterialCategory = {
 }
 
 export type OpenedMaterial = {
-  id: number
+  id: EntityId
   openedAt: string
   expiresAt: string
   computedStatus: string
   remainingText: string
   material: Material
+  remainingQuantity?: string
 }
 
 export type LabelPayload = {

@@ -1,7 +1,7 @@
 import { Popup, Stepper } from 'antd-mobile'
 import { useMemo, useState, type ReactNode } from 'react'
 import { addLife, formatDate, statusText, unitText } from '@/materialUtils'
-import type { Material, OpenedMaterial, PrintMaterial } from '@/types'
+import type { EntityId, Material, OpenedMaterial, PrintMaterial } from '@/types'
 import useApiHost from 'ims-hooks/useApiHost'
 
 function FilterChips({
@@ -222,6 +222,7 @@ function ScrapPopup({
   item,
   quantity,
   remark,
+  loading,
   onQuantityChange,
   onRemarkChange,
   onClose,
@@ -231,6 +232,7 @@ function ScrapPopup({
   item: OpenedMaterial | null
   quantity: string
   remark: string
+  loading: boolean
   onQuantityChange: (value: string) => void
   onRemarkChange: (value: string) => void
   onClose: () => void
@@ -276,8 +278,8 @@ function ScrapPopup({
           <button className="btn btn-secondary" onClick={onClose}>
             取消
           </button>
-          <button className="btn btn-primary" onClick={onConfirm}>
-            确认废弃
+          <button className="btn btn-primary" disabled={loading} onClick={onConfirm}>
+            {loading ? '处理中…' : '确认废弃'}
           </button>
         </div>
       </div>
@@ -289,6 +291,7 @@ function UsePopup({
   visible,
   item,
   quantity,
+  loading,
   onQuantityChange,
   onClose,
   onConfirm
@@ -296,6 +299,7 @@ function UsePopup({
   visible: boolean
   item: OpenedMaterial | null
   quantity: string
+  loading: boolean
   onQuantityChange: (value: string) => void
   onClose: () => void
   onConfirm: () => void
@@ -332,8 +336,8 @@ function UsePopup({
           <button className="btn btn-secondary" onClick={onClose}>
             取消
           </button>
-          <button className="btn btn-primary" onClick={onConfirm}>
-            确认使用
+          <button className="btn btn-primary" disabled={loading} onClick={onConfirm}>
+            {loading ? '处理中…' : '确认使用'}
           </button>
         </div>
       </div>
@@ -353,8 +357,8 @@ function BatchOperationPopup({
   visible: boolean
   action: 'use' | 'scrap'
   items: OpenedMaterial[]
-  quantities: Record<number, string>
-  onQuantityChange: (id: number, value: string) => void
+  quantities: Record<EntityId, string>
+  onQuantityChange: (id: EntityId, value: string) => void
   onClose: () => void
   onConfirm: () => void
 }) {
