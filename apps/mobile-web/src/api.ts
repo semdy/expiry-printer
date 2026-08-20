@@ -1,9 +1,22 @@
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:3000';
 
+const pendingGetRequests = new Map<string, Promise<unknown>>();
+
 export async function apiGet<T>(path: string): Promise<T> {
-  const res = await fetch(`${API_BASE}${path}`);
-  if (!res.ok) throw new Error(await errorText(res));
-  return res.json();
+  const pendingRequest = pendingGetRequests.get(path);
+  if (pendingRequest) return pendingRequest as Promise<T>;
+
+  const request = fetch(`${API_BASE}${path}`)
+    .then(async (res) => {
+      if (!res.ok) throw new Error(await errorText(res));
+      return res.json() as Promise<T>;
+    })
+    .finally(() => {
+      if (pendingGetRequests.get(path) === request) pendingGetRequests.delete(path);
+    });
+
+  pendingGetRequests.set(path, request);
+  return request;
 }
 
 export async function apiSend<T>(path: string, method: string, body?: unknown): Promise<T> {

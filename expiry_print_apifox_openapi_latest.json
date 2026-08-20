@@ -1,0 +1,2587 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "效期标签打印管理 API",
+    "version": "1.5.1",
+    "description": "根据当前 API Server 路由和 Proto 同步。请求头及认证使用 Apifox 项目全局配置；team_id、member_id、operator_name 由后端从 token 注入。"
+  },
+  "servers": [
+    {
+      "url": "{{baseUrl}}",
+      "description": "使用 Apifox 项目环境中的 baseUrl"
+    }
+  ],
+  "tags": [
+    {
+      "name": "自定义配置"
+    },
+    {
+      "name": "物料管理"
+    },
+    {
+      "name": "标签打印"
+    },
+    {
+      "name": "开盒物料"
+    },
+    {
+      "name": "数据中心"
+    },
+    {
+      "name": "日志"
+    }
+  ],
+  "paths": {
+    "/expiryPrint/v1/config_list": {
+      "post": {
+        "tags": [
+          "自定义配置"
+        ],
+        "summary": "自定义配置列表",
+        "operationId": "expiry_print_config_list",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfigListReqHttp"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "成功；业务错误也通过 HTTP 200 返回，以 code 判断",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "code",
+                    "msg",
+                    "data"
+                  ],
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "format": "int32",
+                      "example": 0
+                    },
+                    "msg": {
+                      "type": "string",
+                      "example": "ok"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/ConfigListRes"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/expiryPrint/v1/config_create": {
+      "post": {
+        "tags": [
+          "自定义配置"
+        ],
+        "summary": "新增自定义配置",
+        "operationId": "expiry_print_config_create",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateConfigReqHttp"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "成功；业务错误也通过 HTTP 200 返回，以 code 判断",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "code",
+                    "msg",
+                    "data"
+                  ],
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "format": "int32",
+                      "example": 0
+                    },
+                    "msg": {
+                      "type": "string",
+                      "example": "ok"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/IdRes"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/expiryPrint/v1/config_update": {
+      "post": {
+        "tags": [
+          "自定义配置"
+        ],
+        "summary": "编辑自定义配置",
+        "operationId": "expiry_print_config_update",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateConfigReqHttp"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "成功；业务错误也通过 HTTP 200 返回，以 code 判断",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "code",
+                    "msg",
+                    "data"
+                  ],
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "format": "int32",
+                      "example": 0
+                    },
+                    "msg": {
+                      "type": "string",
+                      "example": "ok"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/Empty"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/expiryPrint/v1/config_status": {
+      "post": {
+        "tags": [
+          "自定义配置"
+        ],
+        "summary": "启用/禁用自定义配置",
+        "operationId": "expiry_print_config_status",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateConfigStatusReqHttp"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "成功；业务错误也通过 HTTP 200 返回，以 code 判断",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "code",
+                    "msg",
+                    "data"
+                  ],
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "format": "int32",
+                      "example": 0
+                    },
+                    "msg": {
+                      "type": "string",
+                      "example": "ok"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/Empty"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/expiryPrint/v1/material_list": {
+      "post": {
+        "tags": [
+          "物料管理"
+        ],
+        "summary": "物料列表",
+        "operationId": "expiry_print_material_list",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MaterialListReqHttp"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "成功；业务错误也通过 HTTP 200 返回，以 code 判断",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "code",
+                    "msg",
+                    "data"
+                  ],
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "format": "int32",
+                      "example": 0
+                    },
+                    "msg": {
+                      "type": "string",
+                      "example": "ok"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/MaterialListRes"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/expiryPrint/v1/material_info": {
+      "post": {
+        "tags": [
+          "物料管理"
+        ],
+        "summary": "物料详情",
+        "operationId": "expiry_print_material_info",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MaterialInfoReqHttp"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "成功；业务错误也通过 HTTP 200 返回，以 code 判断",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "code",
+                    "msg",
+                    "data"
+                  ],
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "format": "int32",
+                      "example": 0
+                    },
+                    "msg": {
+                      "type": "string",
+                      "example": "ok"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/Material"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/expiryPrint/v1/material_create": {
+      "post": {
+        "tags": [
+          "物料管理"
+        ],
+        "summary": "新增物料",
+        "operationId": "expiry_print_material_create",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateMaterialReqHttp"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "成功；业务错误也通过 HTTP 200 返回，以 code 判断",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "code",
+                    "msg",
+                    "data"
+                  ],
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "format": "int32",
+                      "example": 0
+                    },
+                    "msg": {
+                      "type": "string",
+                      "example": "ok"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/IdRes"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/expiryPrint/v1/material_update": {
+      "post": {
+        "tags": [
+          "物料管理"
+        ],
+        "summary": "编辑物料",
+        "operationId": "expiry_print_material_update",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateMaterialReqHttp"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "成功；业务错误也通过 HTTP 200 返回，以 code 判断",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "code",
+                    "msg",
+                    "data"
+                  ],
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "format": "int32",
+                      "example": 0
+                    },
+                    "msg": {
+                      "type": "string",
+                      "example": "ok"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/Empty"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "编辑物料基础信息及归属范围；shop_id、department_id 表示编辑后的目标门店和目标部门。迁移后仅影响物料配置及其预警配置，历史打印和效期记录不变。"
+      }
+    },
+    "/expiryPrint/v1/material_status": {
+      "post": {
+        "tags": [
+          "物料管理"
+        ],
+        "summary": "批量启用/禁用/删除物料",
+        "operationId": "expiry_print_material_status",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BatchUpdateMaterialStatusReqHttp"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "成功；业务错误也通过 HTTP 200 返回，以 code 判断",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "code",
+                    "msg",
+                    "data"
+                  ],
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "format": "int32",
+                      "example": 0
+                    },
+                    "msg": {
+                      "type": "string",
+                      "example": "ok"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/Empty"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/expiryPrint/v1/material_export": {
+      "post": {
+        "tags": [
+          "物料管理"
+        ],
+        "summary": "导出物料",
+        "operationId": "expiry_print_material_export",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExportMaterialsReqHttp"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Excel 文件",
+            "content": {
+              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          }
+        },
+        "description": "按最新24列物料模板导出，包含三组预警时间、每组是否通知部门负责人、每组通知角色、是否收藏和填写须知；开封效期未配置时对应两列留空。"
+      }
+    },
+    "/expiryPrint/v1/label_print": {
+      "post": {
+        "tags": [
+          "标签打印"
+        ],
+        "summary": "标签打印",
+        "operationId": "expiry_print_label_print",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PrintLabelReqHttp"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "成功；业务错误也通过 HTTP 200 返回，以 code 判断",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "code",
+                    "msg",
+                    "data"
+                  ],
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "format": "int32",
+                      "example": 0
+                    },
+                    "msg": {
+                      "type": "string",
+                      "example": "ok"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/PrintLabelRes"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "门店ID不由前端传入，后端根据 teamId 与 material_id 查询物料归属门店。同一物料通过 print_count 一次打印多个时，仅生成一条打印批次记录；预警时间和通知对象在打印时保存快照。"
+      }
+    },
+    "/expiryPrint/v1/label_reprint": {
+      "post": {
+        "tags": [
+          "标签打印"
+        ],
+        "summary": "标签补打",
+        "operationId": "expiry_print_label_reprint",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReprintReqHttp"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "成功；业务错误也通过 HTTP 200 返回，以 code 判断",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "code",
+                    "msg",
+                    "data"
+                  ],
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "format": "int32",
+                      "example": 0
+                    },
+                    "msg": {
+                      "type": "string",
+                      "example": "ok"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/Empty"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/expiryPrint/v1/opened_batch_use": {
+      "post": {
+        "tags": [
+          "开盒物料"
+        ],
+        "summary": "批量使用开盒物料",
+        "operationId": "expiry_print_opened_batch_use",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BatchOperateReqHttp"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "成功；业务错误也通过 HTTP 200 返回，以 code 判断",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "code",
+                    "msg",
+                    "data"
+                  ],
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "format": "int32",
+                      "example": 0
+                    },
+                    "msg": {
+                      "type": "string",
+                      "example": "ok"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/Empty"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "批量操作时，每个打印批次分别传 opened_material_id 和本次使用 quantity。"
+      }
+    },
+    "/expiryPrint/v1/opened_batch_scrap": {
+      "post": {
+        "tags": [
+          "开盒物料"
+        ],
+        "summary": "批量报废开盒物料",
+        "operationId": "expiry_print_opened_batch_scrap",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BatchScrapReqHttp"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "成功；业务错误也通过 HTTP 200 返回，以 code 判断",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "code",
+                    "msg",
+                    "data"
+                  ],
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "format": "int32",
+                      "example": 0
+                    },
+                    "msg": {
+                      "type": "string",
+                      "example": "ok"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/Empty"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "批量操作时，每个打印批次分别传 opened_material_id 和本次废弃 quantity。"
+      }
+    },
+    "/expiryPrint/v1/opened_list": {
+      "post": {
+        "tags": [
+          "开盒物料"
+        ],
+        "summary": "开盒物料列表",
+        "operationId": "expiry_print_opened_list",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OpenedMaterialListReqHttp"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "成功；业务错误也通过 HTTP 200 返回，以 code 判断",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "code",
+                    "msg",
+                    "data"
+                  ],
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "format": "int32",
+                      "example": 0
+                    },
+                    "msg": {
+                      "type": "string",
+                      "example": "ok"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/OpenedMaterialListRes"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "一个打印批次返回一条记录，并返回总数量、累计使用数量、累计废弃数量和剩余数量。"
+      }
+    },
+    "/expiryPrint/v1/warning_list": {
+      "post": {
+        "tags": [
+          "数据中心"
+        ],
+        "summary": "到期预警列表",
+        "operationId": "expiry_print_warning_list",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExpiryWarningListReqHttp"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "成功；业务错误也通过 HTTP 200 返回，以 code 判断",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "code",
+                    "msg",
+                    "data"
+                  ],
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "format": "int32",
+                      "example": 0
+                    },
+                    "msg": {
+                      "type": "string",
+                      "example": "ok"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/OpenedMaterialListRes"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "按打印批次返回即将过期或已过期物料，并包含批次数量及剩余数量。"
+      }
+    },
+    "/expiryPrint/v1/data_center_material_usage": {
+      "post": {
+        "tags": [
+          "数据中心"
+        ],
+        "summary": "物料使用情况列表",
+        "operationId": "expiry_print_data_center_material_usage",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MaterialUsageListReqHttp"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "成功；业务错误也通过 HTTP 200 返回，以 code 判断",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "code",
+                    "msg",
+                    "data"
+                  ],
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "format": "int32",
+                      "example": 0
+                    },
+                    "msg": {
+                      "type": "string",
+                      "example": "ok"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/MaterialUsageListRes"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/expiryPrint/v1/data_center_statistic_count": {
+      "post": {
+        "tags": [
+          "数据中心"
+        ],
+        "summary": "数据中心统计数量",
+        "operationId": "expiry_print_data_center_statistic_count",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StatisticCountReqHttp"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "成功；业务错误也通过 HTTP 200 返回，以 code 判断",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "code",
+                    "msg",
+                    "data"
+                  ],
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "format": "int32",
+                      "example": 0
+                    },
+                    "msg": {
+                      "type": "string",
+                      "example": "ok"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/StatisticCountRes"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/expiryPrint/v1/log_print": {
+      "post": {
+        "tags": [
+          "日志"
+        ],
+        "summary": "效期打印日志列表",
+        "operationId": "expiry_print_log_print",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LogListReqHttp"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "成功；业务错误也通过 HTTP 200 返回，以 code 判断",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "code",
+                    "msg",
+                    "data"
+                  ],
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "format": "int32",
+                      "example": 0
+                    },
+                    "msg": {
+                      "type": "string",
+                      "example": "ok"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/PrintLogListRes"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/expiryPrint/v1/log_scrap": {
+      "post": {
+        "tags": [
+          "日志"
+        ],
+        "summary": "物料报废日志列表",
+        "operationId": "expiry_print_log_scrap",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LogListReqHttp"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "成功；业务错误也通过 HTTP 200 返回，以 code 判断",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "code",
+                    "msg",
+                    "data"
+                  ],
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "format": "int32",
+                      "example": 0
+                    },
+                    "msg": {
+                      "type": "string",
+                      "example": "ok"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/ScrapLogListRes"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/expiryPrint/v1/material_download_import_template": {
+      "post": {
+        "tags": [
+          "物料管理"
+        ],
+        "summary": "下载物料导入模板",
+        "operationId": "expiry_print_material_download_import_template",
+        "description": "下载最新24列物料批量导入模板，模板内包含填写须知和示例行。",
+        "responses": {
+          "200": {
+            "description": "物料导入模板",
+            "content": {
+              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/expiryPrint/v1/material_import": {
+      "post": {
+        "tags": [
+          "物料管理"
+        ],
+        "summary": "导入物料",
+        "operationId": "expiry_print_material_import",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "shop_id",
+                  "file"
+                ],
+                "properties": {
+                  "shop_id": {
+                    "type": "string",
+                    "description": "门店 ID（StoreShop.shopId）",
+                    "pattern": "^[0-9]+$"
+                  },
+                  "file": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "按模板填写的 .xlsx 文件"
+                  },
+                  "department_id": {
+                    "type": "string",
+                    "default": "0",
+                    "description": "导入归属：0或不传表示门店直属；大于0表示指定门店部门",
+                    "pattern": "^[0-9]+$"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "成功；业务错误也通过 HTTP 200 返回，以 code 判断",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "code",
+                    "msg",
+                    "data"
+                  ],
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "format": "int32",
+                      "example": 0
+                    },
+                    "msg": {
+                      "type": "string",
+                      "example": "ok"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/ImportMaterialsRes"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "批量新增物料；使用最新24列模板：预警时间1及单位1必填，预警2和预警3可整组留空；每组预警可分别配置是否通知部门负责人和通知角色，通知角色必须是当前团队已有角色，多个角色使用中文顿号“、”分隔；通知对象可以全部留空，留空时默认通知打印标签操作人；开封效期可整组留空；是否收藏填写是/否。department_id=0或不传时导入到门店，department_id>0时导入到指定门店部门；相同归属范围内物料编码已存在时，该行导入失败，不覆盖原物料。"
+      }
+    },
+    "/expiryPrint/v1/material_download_import_error_report": {
+      "post": {
+        "tags": [
+          "物料管理"
+        ],
+        "summary": "下载最近一次物料导入错误报告",
+        "operationId": "expiry_print_material_download_import_error_report",
+        "responses": {
+          "200": {
+            "description": "物料导入错误报告",
+            "content": {
+              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Empty": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[0-9]+$"
+          }
+        }
+      },
+      "ConfigItem": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[0-9]+$"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "sort": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "remark": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "create_time": {
+            "type": "string",
+            "pattern": "^[0-9]+$"
+          },
+          "update_time": {
+            "type": "string",
+            "pattern": "^[0-9]+$"
+          }
+        }
+      },
+      "ConfigListRes": {
+        "type": "object",
+        "properties": {
+          "list": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ConfigItem"
+            }
+          }
+        }
+      },
+      "Material": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[0-9]+$"
+          },
+          "code": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "category_id": {
+            "type": "string",
+            "pattern": "^[0-9]+$"
+          },
+          "category_name": {
+            "type": "string"
+          },
+          "type_id": {
+            "type": "string",
+            "pattern": "^[0-9]+$"
+          },
+          "type_name": {
+            "type": "string"
+          },
+          "type_remark": {
+            "type": "string"
+          },
+          "unit_id": {
+            "type": "string",
+            "pattern": "^[0-9]+$"
+          },
+          "unit_name": {
+            "type": "string"
+          },
+          "shelf_life_value": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "shelf_life_unit": {
+            "type": "string"
+          },
+          "opened_life_value": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "opened_life_unit": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "remark": {
+            "type": "string"
+          },
+          "create_time": {
+            "type": "string",
+            "pattern": "^[0-9]+$"
+          },
+          "update_time": {
+            "type": "string",
+            "pattern": "^[0-9]+$"
+          },
+          "shop_id": {
+            "type": "string",
+            "pattern": "^[0-9]+$"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MaterialWarning"
+            },
+            "description": "预警配置列表"
+          },
+          "is_favorite": {
+            "type": "integer",
+            "format": "int32",
+            "enum": [
+              0,
+              1
+            ],
+            "description": "是否收藏：0否，1是"
+          },
+          "department_id": {
+            "type": "string",
+            "description": "门店部门ID；0表示直接归属于门店",
+            "pattern": "^[0-9]+$"
+          }
+        }
+      },
+      "MaterialListRes": {
+        "type": "object",
+        "properties": {
+          "list": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Material"
+            }
+          },
+          "total": {
+            "type": "string",
+            "pattern": "^[0-9]+$"
+          }
+        }
+      },
+      "ImportMaterialsRes": {
+        "type": "object",
+        "properties": {
+          "createdCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "failedCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "PrintItem": {
+        "type": "object",
+        "properties": {
+          "material_id": {
+            "type": "string",
+            "pattern": "^[0-9]+$"
+          },
+          "print_count": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 1,
+            "maximum": 99,
+            "description": "本次打印数量；同一物料只生成一条打印批次"
+          }
+        },
+        "required": [
+          "material_id",
+          "print_count"
+        ]
+      },
+      "PrintResult": {
+        "type": "object",
+        "properties": {
+          "material_id": {
+            "type": "string",
+            "pattern": "^[0-9]+$"
+          },
+          "opened_material_id": {
+            "type": "string",
+            "pattern": "^[0-9]+$"
+          },
+          "expires_at": {
+            "type": "string",
+            "pattern": "^[0-9]+$"
+          }
+        }
+      },
+      "PrintLabelRes": {
+        "type": "object",
+        "properties": {
+          "list": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PrintResult"
+            }
+          }
+        }
+      },
+      "OpenedMaterial": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[0-9]+$"
+          },
+          "material_id": {
+            "type": "string",
+            "pattern": "^[0-9]+$"
+          },
+          "material_code": {
+            "type": "string"
+          },
+          "material_name": {
+            "type": "string"
+          },
+          "category_name": {
+            "type": "string"
+          },
+          "type_name": {
+            "type": "string"
+          },
+          "type_remark": {
+            "type": "string"
+          },
+          "unit_name": {
+            "type": "string"
+          },
+          "opened_at": {
+            "type": "string",
+            "pattern": "^[0-9]+$"
+          },
+          "expires_at": {
+            "type": "string",
+            "pattern": "^[0-9]+$"
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32",
+            "description": "1正常 2预警 3过期 4已使用 5已废弃"
+          },
+          "status_name": {
+            "type": "string"
+          },
+          "quantity": {
+            "type": "string",
+            "description": "打印批次总数量"
+          },
+          "remaining_seconds": {
+            "type": "string",
+            "pattern": "^[0-9]+$"
+          },
+          "operator_name": {
+            "type": "string"
+          },
+          "used_quantity": {
+            "type": "string",
+            "description": "累计使用数量"
+          },
+          "scrapped_quantity": {
+            "type": "string",
+            "description": "累计废弃数量"
+          },
+          "remaining_quantity": {
+            "type": "string",
+            "description": "剩余可使用/废弃数量"
+          }
+        }
+      },
+      "OpenedMaterialListRes": {
+        "type": "object",
+        "properties": {
+          "list": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OpenedMaterial"
+            }
+          },
+          "total": {
+            "type": "string",
+            "pattern": "^[0-9]+$"
+          }
+        }
+      },
+      "MaterialUsage": {
+        "type": "object",
+        "properties": {
+          "material_id": {
+            "type": "string",
+            "pattern": "^[0-9]+$"
+          },
+          "material_code": {
+            "type": "string"
+          },
+          "material_name": {
+            "type": "string"
+          },
+          "category_name": {
+            "type": "string"
+          },
+          "use_count": {
+            "type": "string",
+            "pattern": "^[0-9]+$"
+          },
+          "scrap_count": {
+            "type": "string",
+            "pattern": "^[0-9]+$"
+          },
+          "usage_rate": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
+      "MaterialUsageListRes": {
+        "type": "object",
+        "properties": {
+          "list": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MaterialUsage"
+            }
+          },
+          "total": {
+            "type": "string",
+            "pattern": "^[0-9]+$"
+          }
+        }
+      },
+      "StatisticCountRes": {
+        "type": "object",
+        "properties": {
+          "material_total": {
+            "type": "string",
+            "pattern": "^[0-9]+$"
+          },
+          "today_print_count": {
+            "type": "string",
+            "pattern": "^[0-9]+$"
+          },
+          "warning_count": {
+            "type": "string",
+            "pattern": "^[0-9]+$"
+          },
+          "month_scrap_count": {
+            "type": "string",
+            "pattern": "^[0-9]+$"
+          }
+        }
+      },
+      "PrintLog": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[0-9]+$"
+          },
+          "opened_material_id": {
+            "type": "string",
+            "pattern": "^[0-9]+$"
+          },
+          "material_name": {
+            "type": "string"
+          },
+          "category_name": {
+            "type": "string"
+          },
+          "type_name": {
+            "type": "string"
+          },
+          "print_type": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "print_count": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "opened_at": {
+            "type": "string",
+            "pattern": "^[0-9]+$"
+          },
+          "expires_at": {
+            "type": "string",
+            "pattern": "^[0-9]+$"
+          },
+          "operator_name": {
+            "type": "string"
+          },
+          "create_time": {
+            "type": "string",
+            "pattern": "^[0-9]+$"
+          }
+        }
+      },
+      "PrintLogListRes": {
+        "type": "object",
+        "properties": {
+          "list": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PrintLog"
+            }
+          },
+          "total": {
+            "type": "string",
+            "pattern": "^[0-9]+$"
+          }
+        }
+      },
+      "ScrapLog": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[0-9]+$"
+          },
+          "opened_material_id": {
+            "type": "string",
+            "pattern": "^[0-9]+$"
+          },
+          "material_name": {
+            "type": "string"
+          },
+          "category_name": {
+            "type": "string"
+          },
+          "type_name": {
+            "type": "string"
+          },
+          "opened_at": {
+            "type": "string",
+            "pattern": "^[0-9]+$"
+          },
+          "expires_at": {
+            "type": "string",
+            "pattern": "^[0-9]+$"
+          },
+          "quantity": {
+            "type": "string"
+          },
+          "unit_name": {
+            "type": "string"
+          },
+          "remark": {
+            "type": "string"
+          },
+          "operator_name": {
+            "type": "string"
+          },
+          "create_time": {
+            "type": "string",
+            "pattern": "^[0-9]+$"
+          }
+        }
+      },
+      "ScrapLogListRes": {
+        "type": "object",
+        "properties": {
+          "list": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ScrapLog"
+            }
+          },
+          "total": {
+            "type": "string",
+            "pattern": "^[0-9]+$"
+          }
+        }
+      },
+      "ConfigListReqHttp": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "maxLength": 20,
+            "enum": [
+              "category",
+              "type",
+              "unit"
+            ]
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32",
+            "enum": [
+              0,
+              1,
+              2
+            ]
+          },
+          "keyword": {
+            "type": "string",
+            "maxLength": 100
+          }
+        },
+        "required": [
+          "kind"
+        ]
+      },
+      "CreateConfigReqHttp": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "maxLength": 20,
+            "enum": [
+              "category",
+              "type",
+              "unit"
+            ]
+          },
+          "code": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 50
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "sort": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          },
+          "remark": {
+            "type": "string",
+            "maxLength": 500
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32",
+            "enum": [
+              0,
+              1,
+              2
+            ]
+          }
+        },
+        "required": [
+          "kind",
+          "code",
+          "name"
+        ]
+      },
+      "UpdateConfigReqHttp": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[0-9]+$"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "sort": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          },
+          "remark": {
+            "type": "string",
+            "maxLength": 500
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32",
+            "enum": [
+              1,
+              2
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "status"
+        ]
+      },
+      "UpdateConfigStatusReqHttp": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[0-9]+$"
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32",
+            "enum": [
+              1,
+              2
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "status"
+        ]
+      },
+      "MaterialListReqHttp": {
+        "type": "object",
+        "properties": {
+          "keyword": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "category_id": {
+            "type": "string",
+            "pattern": "^[0-9]+$"
+          },
+          "type_id": {
+            "type": "string",
+            "pattern": "^[0-9]+$"
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32",
+            "enum": [
+              0,
+              1,
+              2
+            ]
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 1
+          },
+          "shop_id": {
+            "type": "string",
+            "pattern": "^[0-9]+$"
+          },
+          "page_size": {
+            "type": "integer",
+            "format": "int32",
+            "enum": [
+              10,
+              20,
+              50,
+              100,
+              200
+            ]
+          },
+          "department_id": {
+            "type": "string",
+            "default": "0",
+            "description": "归属范围：0仅查询门店直属物料；大于0仅查询指定门店部门物料",
+            "pattern": "^[0-9]+$"
+          }
+        },
+        "required": [
+          "shop_id",
+          "page",
+          "page_size"
+        ]
+      },
+      "CreateMaterialReqHttp": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 50
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "category_id": {
+            "type": "string",
+            "pattern": "^[0-9]+$"
+          },
+          "type_id": {
+            "type": "string",
+            "pattern": "^[0-9]+$"
+          },
+          "unit_id": {
+            "type": "string",
+            "pattern": "^[0-9]+$"
+          },
+          "shelf_life_value": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0,
+            "exclusiveMinimum": true
+          },
+          "shelf_life_unit": {
+            "type": "string",
+            "maxLength": 10,
+            "enum": [
+              "minute",
+              "hour",
+              "day"
+            ]
+          },
+          "opened_life_value": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          },
+          "opened_life_unit": {
+            "type": "string",
+            "maxLength": 10,
+            "enum": [
+              "",
+              "minute",
+              "hour",
+              "day"
+            ]
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32",
+            "enum": [
+              0,
+              1,
+              2
+            ]
+          },
+          "remark": {
+            "type": "string",
+            "maxLength": 500
+          },
+          "shop_id": {
+            "type": "string",
+            "pattern": "^[0-9]+$"
+          },
+          "warnings": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 10,
+            "items": {
+              "$ref": "#/components/schemas/MaterialWarning"
+            },
+            "description": "预警配置列表"
+          },
+          "is_favorite": {
+            "type": "integer",
+            "format": "int32",
+            "enum": [
+              0,
+              1
+            ],
+            "default": 0,
+            "description": "是否收藏：0否，1是"
+          },
+          "department_id": {
+            "type": "string",
+            "default": "0",
+            "description": "归属范围：0表示直接归属于门店；大于0表示归属于指定门店部门",
+            "pattern": "^[0-9]+$"
+          }
+        },
+        "required": [
+          "code",
+          "name",
+          "category_id",
+          "type_id",
+          "shelf_life_value",
+          "shelf_life_unit",
+          "shop_id",
+          "warnings"
+        ]
+      },
+      "UpdateMaterialReqHttp": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[0-9]+$"
+          },
+          "code": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 50
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "category_id": {
+            "type": "string",
+            "pattern": "^[0-9]+$"
+          },
+          "type_id": {
+            "type": "string",
+            "pattern": "^[0-9]+$"
+          },
+          "unit_id": {
+            "type": "string",
+            "pattern": "^[0-9]+$"
+          },
+          "shelf_life_value": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0,
+            "exclusiveMinimum": true
+          },
+          "shelf_life_unit": {
+            "type": "string",
+            "maxLength": 10,
+            "enum": [
+              "minute",
+              "hour",
+              "day"
+            ]
+          },
+          "opened_life_value": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          },
+          "opened_life_unit": {
+            "type": "string",
+            "maxLength": 10,
+            "enum": [
+              "",
+              "minute",
+              "hour",
+              "day"
+            ]
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32",
+            "enum": [
+              1,
+              2
+            ]
+          },
+          "remark": {
+            "type": "string",
+            "maxLength": 500
+          },
+          "shop_id": {
+            "type": "string",
+            "description": "编辑后的目标门店ID；允许调整物料归属门店",
+            "pattern": "^[0-9]+$"
+          },
+          "warnings": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 10,
+            "items": {
+              "$ref": "#/components/schemas/MaterialWarning"
+            },
+            "description": "预警配置列表"
+          },
+          "is_favorite": {
+            "type": "integer",
+            "format": "int32",
+            "enum": [
+              0,
+              1
+            ],
+            "description": "是否收藏：0否，1是"
+          },
+          "department_id": {
+            "type": "string",
+            "default": "0",
+            "description": "编辑后的目标部门ID；0表示直接归属于目标门店",
+            "pattern": "^[0-9]+$"
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "name",
+          "category_id",
+          "type_id",
+          "shelf_life_value",
+          "shelf_life_unit",
+          "status",
+          "shop_id",
+          "warnings",
+          "is_favorite"
+        ]
+      },
+      "BatchUpdateMaterialStatusReqHttp": {
+        "type": "object",
+        "properties": {
+          "ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[0-9]+$"
+            },
+            "minItems": 1,
+            "maxItems": 100,
+            "uniqueItems": true
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32",
+            "enum": [
+              1,
+              2,
+              3
+            ]
+          }
+        },
+        "required": [
+          "ids",
+          "status"
+        ]
+      },
+      "ExportMaterialsReqHttp": {
+        "type": "object",
+        "properties": {
+          "keyword": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "category_id": {
+            "type": "string",
+            "pattern": "^[0-9]+$"
+          },
+          "type_id": {
+            "type": "string",
+            "pattern": "^[0-9]+$"
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32",
+            "enum": [
+              0,
+              1,
+              2
+            ]
+          },
+          "shop_id": {
+            "type": "string",
+            "pattern": "^[0-9]+$"
+          },
+          "department_id": {
+            "type": "string",
+            "default": "0",
+            "description": "导出范围：0仅导出门店直属物料；大于0仅导出指定门店部门物料",
+            "pattern": "^[0-9]+$"
+          }
+        },
+        "required": [
+          "shop_id"
+        ]
+      },
+      "PrintLabelReqHttp": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PrintItem"
+            },
+            "minItems": 1,
+            "maxItems": 100
+          },
+          "printed_at": {
+            "type": "string",
+            "pattern": "^[0-9]+$"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "example": {
+          "items": [
+            {
+              "material_id": "1",
+              "print_count": 3
+            }
+          ],
+          "printed_at": "0"
+        }
+      },
+      "ReprintReqHttp": {
+        "type": "object",
+        "properties": {
+          "opened_material_id": {
+            "type": "string",
+            "pattern": "^[0-9]+$"
+          }
+        },
+        "required": [
+          "opened_material_id"
+        ]
+      },
+      "BatchOperateReqHttp": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BatchOperateItem"
+            },
+            "minItems": 1,
+            "maxItems": 100
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "example": {
+          "items": [
+            {
+              "opened_material_id": "1",
+              "quantity": "1"
+            },
+            {
+              "opened_material_id": "2",
+              "quantity": "2"
+            }
+          ]
+        }
+      },
+      "BatchScrapReqHttp": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BatchOperateItem"
+            },
+            "minItems": 1,
+            "maxItems": 100
+          },
+          "remark": {
+            "type": "string",
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "example": {
+          "items": [
+            {
+              "opened_material_id": "1",
+              "quantity": "1"
+            },
+            {
+              "opened_material_id": "2",
+              "quantity": "2"
+            }
+          ],
+          "remark": ""
+        }
+      },
+      "OpenedMaterialListReqHttp": {
+        "type": "object",
+        "properties": {
+          "shop_id": {
+            "type": "string",
+            "description": "公司成员必传；门店成员只有一个组织归属时可不传，多个组织归属时需与department_id一起传入并校验权限",
+            "pattern": "^[0-9]+$"
+          },
+          "keyword": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "category_id": {
+            "type": "string",
+            "pattern": "^[0-9]+$"
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32",
+            "enum": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5
+            ]
+          },
+          "start_time": {
+            "type": "string",
+            "pattern": "^[0-9]+$"
+          },
+          "end_time": {
+            "type": "string",
+            "pattern": "^[0-9]+$"
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 1
+          },
+          "page_size": {
+            "type": "integer",
+            "format": "int32",
+            "enum": [
+              10,
+              20,
+              50,
+              100,
+              200
+            ]
+          },
+          "department_id": {
+            "type": "string",
+            "description": "公司成员使用：0查询门店直属物料，大于0查询指定门店部门；门店成员由后端按登录身份确定",
+            "pattern": "^[0-9]+$"
+          }
+        },
+        "required": [
+          "page",
+          "page_size"
+        ]
+      },
+      "ExpiryWarningListReqHttp": {
+        "type": "object",
+        "properties": {
+          "shop_id": {
+            "type": "string",
+            "description": "公司成员必传；门店成员只有一个组织归属时可不传，多个组织归属时需与department_id一起传入并校验权限",
+            "pattern": "^[0-9]+$"
+          },
+          "keyword": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "category_id": {
+            "type": "string",
+            "pattern": "^[0-9]+$"
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32",
+            "enum": [
+              0,
+              2,
+              3
+            ]
+          },
+          "start_time": {
+            "type": "string",
+            "pattern": "^[0-9]+$"
+          },
+          "end_time": {
+            "type": "string",
+            "pattern": "^[0-9]+$"
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 1
+          },
+          "page_size": {
+            "type": "integer",
+            "format": "int32",
+            "enum": [
+              10,
+              20,
+              50,
+              100,
+              200
+            ]
+          },
+          "department_id": {
+            "type": "string",
+            "description": "公司成员使用：0查询门店直属物料，大于0查询指定门店部门；门店成员由后端按登录身份确定",
+            "pattern": "^[0-9]+$"
+          }
+        },
+        "required": [
+          "page",
+          "page_size"
+        ]
+      },
+      "MaterialUsageListReqHttp": {
+        "type": "object",
+        "properties": {
+          "shop_id": {
+            "type": "string",
+            "description": "公司成员必传；门店成员只有一个组织归属时可不传，多个组织归属时需与department_id一起传入并校验权限",
+            "pattern": "^[0-9]+$"
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32",
+            "enum": [
+              0,
+              1,
+              2,
+              3,
+              4
+            ]
+          },
+          "start_time": {
+            "type": "string",
+            "pattern": "^[0-9]+$"
+          },
+          "end_time": {
+            "type": "string",
+            "pattern": "^[0-9]+$"
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 1
+          },
+          "page_size": {
+            "type": "integer",
+            "format": "int32",
+            "enum": [
+              10,
+              20,
+              50,
+              100,
+              200
+            ]
+          },
+          "department_id": {
+            "type": "string",
+            "description": "公司成员使用：0查询门店直属物料，大于0查询指定门店部门；门店成员由后端按登录身份确定",
+            "pattern": "^[0-9]+$"
+          }
+        },
+        "required": [
+          "page",
+          "page_size"
+        ]
+      },
+      "StatisticCountReqHttp": {
+        "type": "object",
+        "properties": {
+          "shop_id": {
+            "type": "string",
+            "description": "公司成员必传；门店成员只有一个组织归属时可不传，多个组织归属时需与department_id一起传入并校验权限",
+            "pattern": "^[0-9]+$"
+          },
+          "department_id": {
+            "type": "string",
+            "description": "公司成员使用：0统计门店直属物料，大于0统计指定门店部门；门店成员由后端按登录身份确定",
+            "pattern": "^[0-9]+$"
+          }
+        },
+        "required": []
+      },
+      "LogListReqHttp": {
+        "type": "object",
+        "properties": {
+          "shop_id": {
+            "type": "string",
+            "description": "公司成员必传；门店成员只有一个组织归属时可不传，多个组织归属时需与department_id一起传入并校验权限",
+            "pattern": "^[0-9]+$"
+          },
+          "start_time": {
+            "type": "string",
+            "pattern": "^[0-9]+$"
+          },
+          "end_time": {
+            "type": "string",
+            "pattern": "^[0-9]+$"
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 1
+          },
+          "page_size": {
+            "type": "integer",
+            "format": "int32",
+            "enum": [
+              10,
+              20,
+              50,
+              100,
+              200
+            ]
+          },
+          "department_id": {
+            "type": "string",
+            "description": "公司成员使用：0查询门店直属日志，大于0查询指定门店部门；门店成员由后端按登录身份确定",
+            "pattern": "^[0-9]+$"
+          }
+        },
+        "required": [
+          "page",
+          "page_size"
+        ]
+      },
+      "IdRes": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[0-9]+$"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      },
+      "MaterialWarningTarget": {
+        "type": "object",
+        "description": "物料预警通知对象。target_type：1成员，4角色；relation：0对象本身，1直属上级，2部门负责人，3上级部门负责人。relation > 0 且 target_id 为空时，以打印标签操作人为关系对象。",
+        "properties": {
+          "target_type": {
+            "type": "integer",
+            "format": "int32",
+            "enum": [
+              1,
+              4
+            ],
+            "description": "通知对象类型：1成员，4角色"
+          },
+          "target_id": {
+            "type": "string",
+            "maxLength": 50,
+            "description": "通知对象ID；relation > 0 且为空时，以打印标签操作人为关系对象"
+          },
+          "target_name": {
+            "type": "string",
+            "maxLength": 100,
+            "description": "通知对象名称"
+          },
+          "relation": {
+            "type": "integer",
+            "format": "int32",
+            "enum": [
+              0,
+              1,
+              2,
+              3
+            ],
+            "description": "关系：0对象本身，1直属上级，2部门负责人，3上级部门负责人"
+          }
+        },
+        "required": [
+          "target_type"
+        ]
+      },
+      "MaterialWarning": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "预警配置ID；新增时传0或不传",
+            "pattern": "^[0-9]+$"
+          },
+          "warning_value": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0,
+            "exclusiveMinimum": true,
+            "description": "预警时间数值"
+          },
+          "warning_unit": {
+            "type": "string",
+            "maxLength": 10,
+            "enum": [
+              "minute",
+              "hour",
+              "day"
+            ],
+            "description": "预警时间单位：minute分钟、hour小时、day天"
+          },
+          "targets": {
+            "type": "array",
+            "maxItems": 100,
+            "items": {
+              "$ref": "#/components/schemas/MaterialWarningTarget"
+            },
+            "description": "预警通知对象；允许为空"
+          }
+        },
+        "required": [
+          "warning_value",
+          "warning_unit"
+        ]
+      },
+      "MaterialInfoReqHttp": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[0-9]+$"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      },
+      "BatchOperateItem": {
+        "type": "object",
+        "properties": {
+          "opened_material_id": {
+            "type": "string",
+            "pattern": "^[0-9]+$"
+          },
+          "quantity": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 23,
+            "pattern": "^[0-9]+(\\.[0-9]{1,4})?$",
+            "description": "本次操作数量，不能超过剩余数量"
+          }
+        },
+        "required": [
+          "opened_material_id",
+          "quantity"
+        ]
+      }
+    }
+  }
+}

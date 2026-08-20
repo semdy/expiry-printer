@@ -100,6 +100,27 @@ function gbkHex(value: string) {
   return iconv.encode(value, 'gbk').toString('hex');
 }
 
+test('移动端切换业务 Tab 时各自接口只请求一次', async ({ page }) => {
+  let materialRequests = 0;
+  let openedMaterialRequests = 0;
+  page.on('request', (request) => {
+    const pathname = new URL(request.url()).pathname;
+    if (request.method() !== 'GET') return;
+    if (pathname === '/api/materials') materialRequests += 1;
+    if (pathname === '/api/opened-materials') openedMaterialRequests += 1;
+  });
+
+  await page.goto(MOBILE_URL);
+  await page.getByText('标签打印').first().click();
+  await expect.poll(() => materialRequests).toBe(1);
+
+  await page.getByText('效期预警').first().click();
+  await expect.poll(() => openedMaterialRequests).toBe(1);
+
+  await page.getByText('物料操作').first().click();
+  await expect.poll(() => openedMaterialRequests).toBe(2);
+});
+
 test('移动端标签时间按所选语言的地区习惯格式化', async ({ page }) => {
   await page.goto(MOBILE_URL);
 

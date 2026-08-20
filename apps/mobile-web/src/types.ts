@@ -30,6 +30,22 @@ export type LabelPayload = {
   copies?: number;
 };
 
+export type NoticeType = 'success' | 'warning';
+
+export type ShowNotice = (content: string, type?: NoticeType) => void;
+
+export type ConfirmOptions = {
+  title: string;
+  content: string;
+  confirmText: string;
+};
+
+export type RequestConfirm = (options: ConfirmOptions) => Promise<boolean>;
+
+export type PrinterController = {
+  printLabels: (labels: LabelPayload[]) => Promise<boolean>;
+};
+
 export type WritableBluetoothCharacteristic = {
   properties: { write?: boolean; writeWithoutResponse?: boolean };
   writeValue: (value: BufferSource) => Promise<void>;
