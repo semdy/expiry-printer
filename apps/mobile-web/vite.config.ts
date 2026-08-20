@@ -11,9 +11,9 @@ const apiMap = {
   test: 'test-',
   stage: 'stage-',
   im: ''
-}
+};
 
-const current = apiMap.test
+const current = apiMap.test;
 
 export default defineConfig(({ command }) => ({
   base: './',
@@ -50,8 +50,9 @@ export default defineConfig(({ command }) => ({
         );
         if (!assetImports.size) return;
 
-        const imports = Array.from(assetImports, ([source, identifier]) =>
-          `import ${identifier} from ${JSON.stringify(source)};`
+        const imports = Array.from(
+          assetImports,
+          ([source, identifier]) => `import ${identifier} from ${JSON.stringify(source)};`
         ).join('\n');
         return { code: `${imports}\n${transformed}`, map: null };
       }
@@ -61,18 +62,7 @@ export default defineConfig(({ command }) => ({
     svgr()
   ],
   resolve: {
-    extensions: [
-      '.web.tsx',
-      '.web.ts',
-      '.web.jsx',
-      '.web.js',
-
-      '.tsx',
-      '.ts',
-      '.jsx',
-      '.js',
-      '.json',
-    ],
+    extensions: ['.web.tsx', '.web.ts', '.web.jsx', '.web.js', '.tsx', '.ts', '.jsx', '.js', '.json'],
     alias: [
       {
         find: '@',
@@ -119,7 +109,7 @@ export default defineConfig(({ command }) => ({
               name: 'vendor',
               test: /node_modules/,
               priority: 10
-            },
+            }
             // {
             //   name: 'common',
             //   minShareCount: 2,
@@ -141,23 +131,23 @@ export default defineConfig(({ command }) => ({
       '/apiuser': {
         target: `https://${current}user-api.imsdom.com`,
         changeOrigin: true,
-        rewrite: path => path.replace(/^\/apiuser/, '')
+        rewrite: (path) => path.replace(/^\/apiuser/, '')
       },
       '/apispace': {
         target: `https://${current}space-api.imsdom.com`,
         changeOrigin: true,
-        rewrite: path => path.replace(/^\/apispace/, '')
+        rewrite: (path) => path.replace(/^\/apispace/, '')
       },
       '/apical': {
         target: `https://${current}cal-api.imsdom.com`,
         changeOrigin: true,
-        rewrite: path => path.replace(/^\/apical/, '')
+        rewrite: (path) => path.replace(/^\/apical/, '')
       },
       '/apigo': {
         target: `https://${current}g-api.imsdom.com`,
         changeOrigin: true,
-        rewrite: path => path.replace(/^\/apigo/, '')
+        rewrite: (path) => path.replace(/^\/apigo/, '')
       }
     }
-  },
+  }
 }));

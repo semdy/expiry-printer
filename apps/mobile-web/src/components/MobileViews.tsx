@@ -1,7 +1,8 @@
-import { Popup, Stepper } from 'antd-mobile';
-import type { ReactNode } from 'react';
-import { addLife, formatDate, statusText, unitText } from '@/materialUtils';
-import type { Material, OpenedMaterial } from '@/types';
+import { Popup, Stepper } from 'antd-mobile'
+import { useMemo, useState, type ReactNode } from 'react'
+import { addLife, formatDate, statusText, unitText } from '@/materialUtils'
+import type { Material, OpenedMaterial, PrintMaterial } from '@/types'
+import useApiHost from 'ims-hooks/useApiHost'
 
 function FilterChips({
   items,
@@ -9,10 +10,10 @@ function FilterChips({
   onChange,
   labels = {}
 }: {
-  items: string[];
-  value: string;
-  onChange: (value: string) => void;
-  labels?: Record<string, ReactNode>;
+  items: string[]
+  value: string
+  onChange: (value: string) => void
+  labels?: Record<string, ReactNode>
 }) {
   return (
     <div className="filter-row">
@@ -22,7 +23,7 @@ function FilterChips({
         </button>
       ))}
     </div>
-  );
+  )
 }
 
 function MaterialPrintCard({
@@ -31,10 +32,10 @@ function MaterialPrintCard({
   onToggle,
   onPrint
 }: {
-  item: Material;
-  checked: boolean;
-  onToggle: () => void;
-  onPrint: () => void;
+  item: PrintMaterial
+  checked: boolean
+  onToggle: () => void
+  onPrint: () => void
 }) {
   return (
     <div className="item-row">
@@ -44,7 +45,7 @@ function MaterialPrintCard({
       <div className="item-info">
         <div className="item-name">{item.name}</div>
         <div className="item-desc">
-          编码: {item.code} | {item.type} | 开封效期: {item.openedLifeValue}
+          编码: {item.code} | {item.typeName} | 开封效期: {item.openedLifeValue}
           {unitText(item.openedLifeUnit)}
         </div>
       </div>
@@ -54,7 +55,7 @@ function MaterialPrintCard({
         </button>
       </div>
     </div>
-  );
+  )
 }
 
 function PrintDetail({
@@ -63,13 +64,25 @@ function PrintDetail({
   onQuantityChange,
   onPrint
 }: {
-  material: Material;
-  quantity: number;
-  onQuantityChange: (value: number) => void;
-  onPrint: () => void;
+  material: PrintMaterial
+  quantity: number
+  onQuantityChange: (value: number) => void
+  onPrint: () => Promise<void>
 }) {
-  const openedAt = new Date();
-  const expiresAt = addLife(openedAt, material.openedLifeValue, material.openedLifeUnit);
+  const hostInfo = useApiHost()
+  const openedAt = useMemo(() => new Date(), [])
+  const expiresAt = useMemo(() => addLife(openedAt, material.openedLifeValue, material.openedLifeUnit), [])
+
+  const [loading, setLoading] = useState(false)
+
+  const handlePrint = async () => {
+    try {
+      setLoading(true)
+      await onPrint?.()
+    } finally {
+      setLoading(false)
+    }
+  }
 
   return (
     <div className="print-detail">
@@ -77,9 +90,9 @@ function PrintDetail({
         <div className="detail-title">物料信息</div>
         <InfoRow label="物料名称" value={material.name} />
         <InfoRow label="物料编码" value={material.code} />
-        <InfoRow label="物料分类" value={material.category} />
-        <InfoRow label="物料类型" value={material.type} />
-        <InfoRow label="规格单位" value={material.unit} />
+        <InfoRow label="物料分类" value={material.categoryName} />
+        <InfoRow label="物料类型" value={material.typeName} />
+        <InfoRow label="规格单位" value={material.unitName} />
         <InfoRow label="开封效期" value={`${material.openedLifeValue}${unitText(material.openedLifeUnit)}`} />
       </section>
 
@@ -94,7 +107,7 @@ function PrintDetail({
             <span>到期时间</span>
             <strong>{formatDate(expiresAt.toISOString())}</strong>
             <span>操作人</span>
-            <strong>默认用户</strong>
+            <strong>{hostInfo.memberInfo.memberName || '默认用户'}</strong>
           </div>
         </div>
       </section>
@@ -109,11 +122,16 @@ function PrintDetail({
         </div>
       </section>
 
-      <button className="btn btn-primary" onClick={onPrint}>
+      <button
+        className="btn btn-primary"
+        disabled={loading}
+        onClick={handlePrint}
+        style={{ opacity: loading ? 0.6 : '' }}
+      >
         确认打印
       </button>
     </div>
-  );
+  )
 }
 
 function BatchPrintPopup({
@@ -125,14 +143,25 @@ function BatchPrintPopup({
   onQuantityChange,
   onPrint
 }: {
-  visible: boolean;
-  materials: Material[];
-  quantities: Record<number, number>;
-  onClose: () => void;
-  onToggle: (id: number) => void;
-  onQuantityChange: (id: number, value: number) => void;
-  onPrint: () => void;
+  visible: boolean
+  materials: PrintMaterial[]
+  quantities: Record<string, number>
+  onClose: () => void
+  onToggle: (id: string) => void
+  onQuantityChange: (id: string, value: number) => void
+  onPrint: () => Promise<void>
 }) {
+  const [loading, setLoading] = useState(false)
+
+  const handlePrint = async () => {
+    try {
+      setLoading(true)
+      await onPrint?.()
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <Popup visible={visible} onMaskClick={onClose} bodyStyle={{ borderRadius: '8px 8px 0 0', padding: 0 }}>
       <div className="batch-print-modal">
@@ -146,7 +175,7 @@ function BatchPrintPopup({
           <div className="form-label">选择物料并设置数量</div>
           <div className="batch-print-list">
             {materials.map((item) => {
-              const quantity = quantities[item.id] || 1;
+              const quantity = quantities[item.id] || 1
               return (
                 <div className="batch-print-item" key={item.id}>
                   <label className="batch-checkbox">
@@ -166,7 +195,7 @@ function BatchPrintPopup({
                     </button>
                   </div>
                 </div>
-              );
+              )
             })}
           </div>
         </div>
@@ -174,13 +203,18 @@ function BatchPrintPopup({
           <button className="btn btn-secondary" onClick={onClose}>
             取消
           </button>
-          <button className="btn btn-primary" onClick={onPrint}>
+          <button
+            className="btn btn-primary"
+            disabled={loading}
+            onClick={handlePrint}
+            style={{ opacity: loading ? 0.6 : '' }}
+          >
             批量打印
           </button>
         </div>
       </div>
     </Popup>
-  );
+  )
 }
 
 function ScrapPopup({
@@ -193,14 +227,14 @@ function ScrapPopup({
   onClose,
   onConfirm
 }: {
-  visible: boolean;
-  item: OpenedMaterial | null;
-  quantity: string;
-  remark: string;
-  onQuantityChange: (value: string) => void;
-  onRemarkChange: (value: string) => void;
-  onClose: () => void;
-  onConfirm: () => void;
+  visible: boolean
+  item: OpenedMaterial | null
+  quantity: string
+  remark: string
+  onQuantityChange: (value: string) => void
+  onRemarkChange: (value: string) => void
+  onClose: () => void
+  onConfirm: () => void
 }) {
   return (
     <Popup visible={visible} onMaskClick={onClose} bodyStyle={{ borderRadius: '8px 8px 0 0', padding: 0 }}>
@@ -248,7 +282,7 @@ function ScrapPopup({
         </div>
       </div>
     </Popup>
-  );
+  )
 }
 
 function UsePopup({
@@ -259,12 +293,12 @@ function UsePopup({
   onClose,
   onConfirm
 }: {
-  visible: boolean;
-  item: OpenedMaterial | null;
-  quantity: string;
-  onQuantityChange: (value: string) => void;
-  onClose: () => void;
-  onConfirm: () => void;
+  visible: boolean
+  item: OpenedMaterial | null
+  quantity: string
+  onQuantityChange: (value: string) => void
+  onClose: () => void
+  onConfirm: () => void
 }) {
   return (
     <Popup visible={visible} onMaskClick={onClose} bodyStyle={{ borderRadius: '8px 8px 0 0', padding: 0 }}>
@@ -304,7 +338,7 @@ function UsePopup({
         </div>
       </div>
     </Popup>
-  );
+  )
 }
 
 function BatchOperationPopup({
@@ -316,16 +350,16 @@ function BatchOperationPopup({
   onClose,
   onConfirm
 }: {
-  visible: boolean;
-  action: 'use' | 'scrap';
-  items: OpenedMaterial[];
-  quantities: Record<number, string>;
-  onQuantityChange: (id: number, value: string) => void;
-  onClose: () => void;
-  onConfirm: () => void;
+  visible: boolean
+  action: 'use' | 'scrap'
+  items: OpenedMaterial[]
+  quantities: Record<number, string>
+  onQuantityChange: (id: number, value: string) => void
+  onClose: () => void
+  onConfirm: () => void
 }) {
-  const title = action === 'use' ? '批量使用' : '批量废弃';
-  const confirmText = action === 'use' ? '确认使用' : '确认废弃';
+  const title = action === 'use' ? '批量使用' : '批量废弃'
+  const confirmText = action === 'use' ? '确认使用' : '确认废弃'
   return (
     <Popup visible={visible} onMaskClick={onClose} bodyStyle={{ borderRadius: '8px 8px 0 0', padding: 0 }}>
       <div className="scrap-popup batch-operation-popup">
@@ -346,7 +380,9 @@ function BatchOperationPopup({
                 <input
                   className="scrap-input batch-operation-input"
                   aria-label={
-                    action === 'use' ? t('{name}使用数量', { name: item.material.name }) : t('{name}废弃数量', { name: item.material.name })
+                    action === 'use'
+                      ? t('{name}使用数量', { name: item.material.name })
+                      : t('{name}废弃数量', { name: item.material.name })
                   }
                   inputMode="numeric"
                   min="1"
@@ -370,7 +406,7 @@ function BatchOperationPopup({
         </div>
       </div>
     </Popup>
-  );
+  )
 }
 
 function OpenedCard({
@@ -379,10 +415,10 @@ function OpenedCard({
   onScrap,
   onReprint
 }: {
-  item: OpenedMaterial;
-  onUse: (item: OpenedMaterial) => void;
-  onScrap: (item: OpenedMaterial) => void;
-  onReprint: (item: OpenedMaterial) => void;
+  item: OpenedMaterial
+  onUse: (item: OpenedMaterial) => void
+  onScrap: (item: OpenedMaterial) => void
+  onReprint: (item: OpenedMaterial) => void
 }) {
   return (
     <div className="item-row warning-row">
@@ -417,7 +453,7 @@ function OpenedCard({
         </div>
       </div>
     </div>
-  );
+  )
 }
 
 function OpenedOperationCard({
@@ -428,12 +464,12 @@ function OpenedOperationCard({
   onScrap,
   onReprint
 }: {
-  item: OpenedMaterial;
-  checked: boolean;
-  onToggle: () => void;
-  onUse: (item: OpenedMaterial) => void;
-  onScrap: (item: OpenedMaterial) => void;
-  onReprint: (item: OpenedMaterial) => void;
+  item: OpenedMaterial
+  checked: boolean
+  onToggle: () => void
+  onUse: (item: OpenedMaterial) => void
+  onScrap: (item: OpenedMaterial) => void
+  onReprint: (item: OpenedMaterial) => void
 }) {
   return (
     <div className="material-card">
@@ -474,7 +510,7 @@ function OpenedOperationCard({
         </div>
       </div>
     </div>
-  );
+  )
 }
 
 function InfoRow({ label, value, danger }: { label: string; value: string; danger?: boolean }) {
@@ -483,7 +519,7 @@ function InfoRow({ label, value, danger }: { label: string; value: string; dange
       <span className="material-info-label">{label}</span>
       <span className={`material-info-value ${danger ? 'text-danger' : ''}`}>{value}</span>
     </div>
-  );
+  )
 }
 
 export {
@@ -496,4 +532,4 @@ export {
   PrintDetail,
   ScrapPopup,
   UsePopup
-};
+}
