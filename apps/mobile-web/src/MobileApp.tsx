@@ -1,16 +1,16 @@
 import { NavBar, TabBar } from 'antd-mobile';
 import { useCallback, useRef, useState } from 'react';
-import IconBox from './assets/svgs/box.svg?react';
-import IconBell from './assets/svgs/bell.svg?react';
-import IconPrinter from './assets/svgs/printer.svg?react';
-import IconSettings from './assets/svgs/settings.svg?react';
-import LanguageSwitcher from './components/LanguageSwitcher';
-import HomeTab from './tabs/HomeTab';
-import OperationTab from './tabs/OperationTab';
-import PrinterSettingsTab from './tabs/PrinterSettingsTab';
-import PrintTab, { type PrintTabHandle } from './tabs/PrintTab';
-import WarningTab from './tabs/WarningTab';
-import type { ConfirmOptions, NoticeType, PrinterController, Tab } from './types';
+import IconBox from '@/assets/svgs/box.svg?react';
+import IconBell from '@/assets/svgs/bell.svg?react';
+import IconPrinter from '@/assets/svgs/printer.svg?react';
+import IconSettings from '@/assets/svgs/settings.svg?react';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
+import HomeTab from '@/tabs/HomeTab';
+import OperationTab from '@/tabs/OperationTab';
+import PrinterSettingsTab from '@/tabs/PrinterSettingsTab';
+import PrintTab, { type PrintTabHandle } from '@/tabs/PrintTab';
+import WarningTab from '@/tabs/WarningTab';
+import type { ConfirmOptions, NoticeType, PrinterController, Tab } from '@/types';
 
 export default function MobileApp() {
   const [tab, setTab] = useState<Tab>('home');
@@ -72,7 +72,6 @@ export default function MobileApp() {
         {tab === 'print' && (
           <PrintTab
             ref={printTab}
-            active={tab === 'print'}
             printer={printer}
             showNotice={showNotice}
             onDetailChange={setPrintDetailOpen}
@@ -81,7 +80,6 @@ export default function MobileApp() {
         )}
         {tab === 'warning' && (
           <WarningTab
-            active={tab === 'warning'}
             printer={printer}
             showNotice={showNotice}
             requestConfirm={requestConfirm}
@@ -89,7 +87,6 @@ export default function MobileApp() {
         )}
         {tab === 'operation' && (
           <OperationTab
-            active={tab === 'operation'}
             printer={printer}
             showNotice={showNotice}
             requestConfirm={requestConfirm}

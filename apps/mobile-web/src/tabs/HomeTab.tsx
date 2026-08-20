@@ -1,4 +1,4 @@
-import type { Tab } from '../types';
+import type { Tab } from '@/types';
 
 type HomeTabProps = {
   onTabChange: (tab: Tab) => void;

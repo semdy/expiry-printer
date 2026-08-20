@@ -1,14 +1,14 @@
 import { Badge, Button, Popup, SearchBar } from 'antd-mobile';
 import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
-import { hasNativeBluetoothPrinter, NativeBluetoothPrinter, type NativeBluetoothDevice } from '../bluetoothPrinter';
-import NativeBridge from '../nativeBridge';
+import { hasNativeBluetoothPrinter, NativeBluetoothPrinter, type NativeBluetoothDevice } from '@/bluetoothPrinter';
+import NativeBridge from '@/nativeBridge';
 import {
   bluetoothServiceUuids,
   printLabelsViaBluetooth,
   reconnectBluetoothPrinter,
   requestBluetoothPrinter
-} from '../printerService';
-import type { BluetoothPrinterConnection, PrinterController, ShowNotice } from '../types';
+} from '@/printerService';
+import type { BluetoothPrinterConnection, PrinterController, ShowNotice } from '@/types';
 
 const printerStorageKey = 'expiry-label-printer-name';
 const printerIdStorageKey = 'expiry-label-printer-id';

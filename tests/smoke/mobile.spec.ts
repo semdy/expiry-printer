@@ -121,6 +121,27 @@ test('移动端切换业务 Tab 时各自接口只请求一次', async ({ page }
   await expect.poll(() => openedMaterialRequests).toBe(2);
 });
 
+test('移动端切回业务 Tab 时立即展示缓存状态', async ({ page, request }) => {
+  const material = await createMaterial(request, 'MCACHE');
+  await printMaterial(request, material.id);
+
+  await page.goto(MOBILE_URL);
+  await page.getByText('物料操作').first().click();
+  const search = page.getByPlaceholder('搜索物料名称/编码');
+  await search.fill(material.code);
+  await expect(page.locator('.material-card').filter({ hasText: material.code }).first()).toBeVisible();
+
+  await page.getByText('标签打印').first().click();
+  await page.route('**/api/opened-materials', async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+    await route.continue();
+  });
+  await page.getByText('物料操作').first().click();
+
+  await expect(search).toHaveValue(material.code, { timeout: 500 });
+  await expect(page.locator('.material-card').filter({ hasText: material.code }).first()).toBeVisible({ timeout: 500 });
+});
+
 test('移动端标签时间按所选语言的地区习惯格式化', async ({ page }) => {
   await page.goto(MOBILE_URL);
 

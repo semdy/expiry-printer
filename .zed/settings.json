@@ -4,8 +4,8 @@
       "format_on_save": "on",
       "formatter": {
         "external": {
-          "command": "npx",
-          "arguments": ["--no-install", "prettier", "--stdin-filepath", "{buffer_path}"]
+          "command": "node",
+          "arguments": ["./node_modules/prettier/bin/prettier.cjs", "--stdin-filepath", "{buffer_path}"]
         }
       }
     },
@@ -13,8 +13,8 @@
       "format_on_save": "on",
       "formatter": {
         "external": {
-          "command": "npx",
-          "arguments": ["--no-install", "prettier", "--stdin-filepath", "{buffer_path}"]
+          "command": "node",
+          "arguments": ["./node_modules/prettier/bin/prettier.cjs", "--stdin-filepath", "{buffer_path}"]
         }
       }
     },
@@ -22,8 +22,8 @@
       "format_on_save": "on",
       "formatter": {
         "external": {
-          "command": "npx",
-          "arguments": ["--no-install", "prettier", "--stdin-filepath", "{buffer_path}"]
+          "command": "node",
+          "arguments": ["./node_modules/prettier/bin/prettier.cjs", "--stdin-filepath", "{buffer_path}"]
         }
       }
     },
@@ -31,8 +31,8 @@
       "format_on_save": "on",
       "formatter": {
         "external": {
-          "command": "npx",
-          "arguments": ["--no-install", "prettier", "--stdin-filepath", "{buffer_path}"]
+          "command": "node",
+          "arguments": ["./node_modules/prettier/bin/prettier.cjs", "--stdin-filepath", "{buffer_path}"]
         }
       }
     },
@@ -40,8 +40,8 @@
       "format_on_save": "on",
       "formatter": {
         "external": {
-          "command": "npx",
-          "arguments": ["--no-install", "prettier", "--stdin-filepath", "{buffer_path}"]
+          "command": "node",
+          "arguments": ["./node_modules/prettier/bin/prettier.cjs", "--stdin-filepath", "{buffer_path}"]
         }
       }
     },
@@ -49,8 +49,8 @@
       "format_on_save": "on",
       "formatter": {
         "external": {
-          "command": "npx",
-          "arguments": ["--no-install", "prettier", "--stdin-filepath", "{buffer_path}"]
+          "command": "node",
+          "arguments": ["./node_modules/prettier/bin/prettier.cjs", "--stdin-filepath", "{buffer_path}"]
         }
       }
     },
@@ -58,8 +58,8 @@
       "format_on_save": "on",
       "formatter": {
         "external": {
-          "command": "npx",
-          "arguments": ["--no-install", "prettier", "--stdin-filepath", "{buffer_path}"]
+          "command": "node",
+          "arguments": ["./node_modules/prettier/bin/prettier.cjs", "--stdin-filepath", "{buffer_path}"]
         }
       }
     }

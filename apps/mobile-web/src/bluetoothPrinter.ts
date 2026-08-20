@@ -1,4 +1,4 @@
-import NativeBridge from './nativeBridge';
+import NativeBridge from '@/nativeBridge';
 
 export type NativeBluetoothDevice = {
   id: string;

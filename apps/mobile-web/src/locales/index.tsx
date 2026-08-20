@@ -1,9 +1,9 @@
 import i18n from 'i18next';
 import { Trans as RawTrans, useTranslation as useRawTranslation, initReactI18next } from 'react-i18next';
 
-import en_gen from './gen/en.json';
-import zhHans_gen from './gen/zh-cn.json';
-import zhHant_gen from './gen/zh-tw.json';
+import en_gen from '@/locales/gen/en.json';
+import zhHans_gen from '@/locales/gen/zh-cn.json';
+import zhHant_gen from '@/locales/gen/zh-tw.json';
 
 export const messages = {
   'zh-CN': zhHans_gen,

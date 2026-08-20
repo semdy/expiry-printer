@@ -1,33 +1,37 @@
 import { SearchBar } from 'antd-mobile';
-import type { CheckItem } from '@imsfe/organization-selector';
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { apiGet } from '../api';
-import { FilterChips, OpenedOperationCard } from '../components/MobileViews';
-import OrganizationPicker from '../components/OrganizationPicker';
-import { toggleId } from '../materialUtils';
-import type { OpenedMaterial, PrinterController, RequestConfirm, ShowNotice } from '../types';
-import { useOpenedMaterialActions } from './useOpenedMaterialActions';
+import { useEffect, useMemo } from 'react';
+import { FilterChips, OpenedOperationCard } from '@/components/MobileViews';
+import OrganizationPicker from '@/components/OrganizationPicker';
+import { toggleId } from '@/materialUtils';
+import { useOperationTabStore } from '@/stores/operationTabStore';
+import { useOpenedMaterialActions } from '@/tabs/useOpenedMaterialActions';
+import type { PrinterController, RequestConfirm, ShowNotice } from '@/types';
 
 type Props = {
-  active: boolean;
   printer: React.RefObject<PrinterController | null>;
   showNotice: ShowNotice;
   requestConfirm: RequestConfirm;
 };
 
-export default function OperationTab({ active, printer, showNotice, requestConfirm }: Props) {
-  const [items, setItems] = useState<OpenedMaterial[]>([]);
-  const [keyword, setKeyword] = useState('');
-  const [category, setCategory] = useState('all');
-  const [selectedIds, setSelectedIds] = useState<number[]>([]);
-  const [organizations, setOrganizations] = useState<CheckItem[]>([]);
-  const loadItems = useCallback(async () => setItems(await apiGet('/api/opened-materials')), []);
+export default function OperationTab({ printer, showNotice, requestConfirm }: Props) {
+  const {
+    items,
+    keyword,
+    category,
+    selectedIds,
+    organizations,
+    refresh,
+    setKeyword,
+    setCategory,
+    setSelectedIds,
+    setOrganizations
+  } = useOperationTabStore();
   const actions = useOpenedMaterialActions({
     items,
     printer,
     showNotice,
     requestConfirm,
-    reload: loadItems,
+    reload: refresh,
     onBatchComplete: () => setSelectedIds([])
   });
   const categories = useMemo(() => ['all', ...new Set(items.map((item) => item.material.category))], [items]);
@@ -37,8 +41,8 @@ export default function OperationTab({ active, printer, showNotice, requestConfi
   }), [items, keyword, category]);
 
   useEffect(() => {
-    if (active) void loadItems();
-  }, [active, loadItems]);
+    void refresh();
+  }, [refresh]);
 
   return (
     <>

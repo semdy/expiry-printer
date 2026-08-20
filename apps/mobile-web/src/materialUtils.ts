@@ -1,4 +1,4 @@
-import type { Material } from './types';
+import type { Material } from '@/types';
 
 export function toggleId(items: number[], setItems: (items: number[]) => void, id: number) {
   setItems(items.includes(id) ? items.filter((item) => item !== id) : [...items, id]);

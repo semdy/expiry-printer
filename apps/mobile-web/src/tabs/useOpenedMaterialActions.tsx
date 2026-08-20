@@ -1,8 +1,8 @@
 import { useState, type ReactNode } from 'react';
-import { apiSend } from '../api';
-import { BatchOperationPopup, ScrapPopup, UsePopup } from '../components/MobileViews';
-import { labelMaterialType } from '../materialUtils';
-import type { OpenedMaterial, PrinterController, RequestConfirm, ShowNotice } from '../types';
+import { apiSend } from '@/api';
+import { BatchOperationPopup, ScrapPopup, UsePopup } from '@/components/MobileViews';
+import { labelMaterialType } from '@/materialUtils';
+import type { OpenedMaterial, PrinterController, RequestConfirm, ShowNotice } from '@/types';
 
 type Action = 'use' | 'scrap';
 

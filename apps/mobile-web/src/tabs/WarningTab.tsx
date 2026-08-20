@@ -1,26 +1,20 @@
 import { ErrorBlock, SearchBar } from 'antd-mobile';
-import type { CheckItem } from '@imsfe/organization-selector';
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { apiGet } from '../api';
-import { FilterChips, OpenedCard } from '../components/MobileViews';
-import OrganizationPicker from '../components/OrganizationPicker';
-import type { OpenedMaterial, PrinterController, RequestConfirm, ShowNotice } from '../types';
-import { useOpenedMaterialActions } from './useOpenedMaterialActions';
+import { useEffect, useMemo } from 'react';
+import { FilterChips, OpenedCard } from '@/components/MobileViews';
+import OrganizationPicker from '@/components/OrganizationPicker';
+import { useWarningTabStore } from '@/stores/warningTabStore';
+import { useOpenedMaterialActions } from '@/tabs/useOpenedMaterialActions';
+import type { PrinterController, RequestConfirm, ShowNotice } from '@/types';
 
 type Props = {
-  active: boolean;
   printer: React.RefObject<PrinterController | null>;
   showNotice: ShowNotice;
   requestConfirm: RequestConfirm;
 };
 
-export default function WarningTab({ active, printer, showNotice, requestConfirm }: Props) {
-  const [items, setItems] = useState<OpenedMaterial[]>([]);
-  const [keyword, setKeyword] = useState('');
-  const [status, setStatus] = useState('all');
-  const [organizations, setOrganizations] = useState<CheckItem[]>([]);
-  const loadItems = useCallback(async () => setItems(await apiGet('/api/opened-materials')), []);
-  const actions = useOpenedMaterialActions({ items, printer, showNotice, requestConfirm, reload: loadItems });
+export default function WarningTab({ printer, showNotice, requestConfirm }: Props) {
+  const { items, keyword, status, organizations, refresh, setKeyword, setStatus, setOrganizations } = useWarningTabStore();
+  const actions = useOpenedMaterialActions({ items, printer, showNotice, requestConfirm, reload: refresh });
   const filteredItems = useMemo(() => items.filter((item) => {
     const statusHit = status === 'all' ? ['warning', 'expired'].includes(item.computedStatus) : item.computedStatus === status;
     const keywordHit = !keyword || item.material.name.includes(keyword) || item.material.code.includes(keyword);
@@ -28,8 +22,8 @@ export default function WarningTab({ active, printer, showNotice, requestConfirm
   }), [items, keyword, status]);
 
   useEffect(() => {
-    if (active) void loadItems();
-  }, [active, loadItems]);
+    void refresh();
+  }, [refresh]);
 
   return (
     <>

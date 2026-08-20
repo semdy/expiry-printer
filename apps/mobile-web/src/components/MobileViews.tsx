@@ -1,7 +1,7 @@
 import { Popup, Stepper } from 'antd-mobile';
 import type { ReactNode } from 'react';
-import { addLife, formatDate, statusText, unitText } from '../materialUtils';
-import type { Material, OpenedMaterial } from '../types';
+import { addLife, formatDate, statusText, unitText } from '@/materialUtils';
+import type { Material, OpenedMaterial } from '@/types';
 
 function FilterChips({
   items,

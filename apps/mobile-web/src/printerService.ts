@@ -1,13 +1,13 @@
 import cp936Table from 'iconv-lite/encodings/tables/cp936.json';
 import gbkAddedTable from 'iconv-lite/encodings/tables/gbk-added.json';
-import { bytesToBase64, NativeBluetoothPrinter } from './bluetoothPrinter';
-import { locale } from './locales';
+import { bytesToBase64, NativeBluetoothPrinter } from '@/bluetoothPrinter';
+import { locale } from '@/locales';
 import type {
   BluetoothPrinterConnection,
   BluetoothPrinterDevice,
   LabelPayload,
   WritableBluetoothCharacteristic
-} from './types';
+} from '@/types';
 
 export const bluetoothServiceUuids = [
   '0000ae30-0000-1000-8000-00805f9b34fb',

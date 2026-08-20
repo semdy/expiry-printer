@@ -1,7 +1,7 @@
 import { ApiProvider } from 'ims-data'
 import { getCurrentLang } from 'shared/i18n'
 import { promisify } from 'shared/utils'
-import MobileApp from './MobileApp'
+import MobileApp from '@/MobileApp'
 
 export function getSearchParams(search = '', name = '') {
   const reg = new RegExp(`(^|&)${name}=([^&]*)(&|$)`)

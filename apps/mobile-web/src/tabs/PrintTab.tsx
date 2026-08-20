@@ -1,16 +1,15 @@
 import { SearchBar } from 'antd-mobile';
-import type { CheckItem } from '@imsfe/organization-selector';
 import { forwardRef, useEffect, useImperativeHandle, useMemo, useState } from 'react';
-import { apiGet, apiSend } from '../api';
-import { BatchPrintPopup, FilterChips, MaterialPrintCard, PrintDetail } from '../components/MobileViews';
-import OrganizationPicker from '../components/OrganizationPicker';
-import { addLife, labelMaterialType, toggleId } from '../materialUtils';
-import type { Material, PrinterController, ShowNotice } from '../types';
+import { apiSend } from '@/api';
+import { BatchPrintPopup, FilterChips, MaterialPrintCard, PrintDetail } from '@/components/MobileViews';
+import OrganizationPicker from '@/components/OrganizationPicker';
+import { addLife, labelMaterialType, toggleId } from '@/materialUtils';
+import { usePrintTabStore } from '@/stores/printTabStore';
+import type { Material, PrinterController, ShowNotice } from '@/types';
 
 export type PrintTabHandle = { closeDetail: () => void };
 
 type Props = {
-  active: boolean;
   printer: React.RefObject<PrinterController | null>;
   showNotice: ShowNotice;
   onDetailChange: (open: boolean) => void;
@@ -18,39 +17,44 @@ type Props = {
 };
 
 const PrintTab = forwardRef<PrintTabHandle, Props>(function PrintTab(
-  { active, printer, showNotice, onDetailChange, onSelectionChange },
+  { printer, showNotice, onDetailChange, onSelectionChange },
   ref
 ) {
-  const [materials, setMaterials] = useState<Material[]>([]);
-  const [keyword, setKeyword] = useState('');
-  const [category, setCategory] = useState('all');
-  const [selectedIds, setSelectedIds] = useState<number[]>([]);
-  const [detailMaterial, setDetailMaterial] = useState<Material | null>(null);
-  const [quantity, setQuantity] = useState(1);
+  const {
+    materials,
+    keyword,
+    category,
+    selectedIds,
+    detailMaterial,
+    quantity,
+    organizations,
+    refresh,
+    setKeyword,
+    setCategory,
+    setSelectedIds,
+    setDetailMaterial,
+    setQuantity,
+    setOrganizations
+  } = usePrintTabStore();
   const [batchOpen, setBatchOpen] = useState(false);
   const [batchQuantities, setBatchQuantities] = useState<Record<number, number>>({});
-  const [organizations, setOrganizations] = useState<CheckItem[]>([]);
 
   const categories = useMemo(() => ['all', ...new Set(materials.map((item) => item.category))], [materials]);
   const filteredMaterials = useMemo(
-    () => materials.filter((item) => {
-      const keywordHit = !keyword || item.name.includes(keyword) || item.code.includes(keyword);
-      return item.status === 'enabled' && keywordHit && (category === 'all' || item.category === category);
-    }),
+    () =>
+      materials.filter((item) => {
+        const keywordHit = !keyword || item.name.includes(keyword) || item.code.includes(keyword);
+        return item.status === 'enabled' && keywordHit && (category === 'all' || item.category === category);
+      }),
     [materials, keyword, category]
   );
 
   useEffect(() => {
-    if (active) void loadMaterials();
-    else setBatchOpen(false);
-  }, [active]);
+    void refresh();
+  }, [refresh]);
   useEffect(() => onDetailChange(Boolean(detailMaterial)), [detailMaterial, onDetailChange]);
   useEffect(() => onSelectionChange(selectedIds.length), [selectedIds.length, onSelectionChange]);
   useImperativeHandle(ref, () => ({ closeDetail: () => setDetailMaterial(null) }), []);
-
-  async function loadMaterials() {
-    setMaterials(await apiGet('/api/materials'));
-  }
 
   function openDetail(material: Material) {
     setDetailMaterial(material);
@@ -59,13 +63,15 @@ const PrintTab = forwardRef<PrintTabHandle, Props>(function PrintTab(
 
   async function printMaterial(material: Material, copies: number) {
     const printedAt = new Date();
-    const sent = await printer.current?.printLabels([{
-      materialName: material.name,
-      materialType: labelMaterialType(material),
-      printedAt: printedAt.toISOString(),
-      expiresAt: addLife(printedAt, material.openedLifeValue, material.openedLifeUnit).toISOString(),
-      copies
-    }]);
+    const sent = await printer.current?.printLabels([
+      {
+        materialName: material.name,
+        materialType: labelMaterialType(material),
+        printedAt: printedAt.toISOString(),
+        expiresAt: addLife(printedAt, material.openedLifeValue, material.openedLifeUnit).toISOString(),
+        copies
+      }
+    ]);
     if (!sent) return false;
     await apiSend('/api/labels/print', 'POST', { materialId: material.id, printCount: copies });
     showNotice('打印成功');
@@ -90,13 +96,15 @@ const PrintTab = forwardRef<PrintTabHandle, Props>(function PrintTab(
     const rows = materials.filter((item) => selectedIds.includes(item.id));
     if (!rows.length) return;
     const printedAt = new Date();
-    const sent = await printer.current?.printLabels(rows.map((material) => ({
-      materialName: material.name,
-      materialType: labelMaterialType(material),
-      printedAt: printedAt.toISOString(),
-      expiresAt: addLife(printedAt, material.openedLifeValue, material.openedLifeUnit).toISOString(),
-      copies: batchQuantities[material.id] || 1
-    })));
+    const sent = await printer.current?.printLabels(
+      rows.map((material) => ({
+        materialName: material.name,
+        materialType: labelMaterialType(material),
+        printedAt: printedAt.toISOString(),
+        expiresAt: addLife(printedAt, material.openedLifeValue, material.openedLifeUnit).toISOString(),
+        copies: batchQuantities[material.id] || 1
+      }))
+    );
     if (!sent) return;
     for (const material of rows) {
       await apiSend('/api/labels/print', 'POST', {
@@ -117,7 +125,14 @@ const PrintTab = forwardRef<PrintTabHandle, Props>(function PrintTab(
   }
 
   if (detailMaterial) {
-    return <PrintDetail material={detailMaterial} quantity={quantity} onQuantityChange={setQuantity} onPrint={() => void confirmPrint()} />;
+    return (
+      <PrintDetail
+        material={detailMaterial}
+        quantity={quantity}
+        onQuantityChange={setQuantity}
+        onPrint={() => void confirmPrint()}
+      />
+    );
   }
 
   return (
@@ -129,7 +144,8 @@ const PrintTab = forwardRef<PrintTabHandle, Props>(function PrintTab(
       <FilterChips items={categories} value={category} onChange={setCategory} />
       <section className="card">
         <div className="card-title">
-          <span>物料列表</span><span className="card-count">共 {filteredMaterials.length} 条</span>
+          <span>物料列表</span>
+          <span className="card-count">共 {filteredMaterials.length} 条</span>
         </div>
         <div className="item-list">
           {filteredMaterials.map((item) => (
@@ -147,9 +163,13 @@ const PrintTab = forwardRef<PrintTabHandle, Props>(function PrintTab(
         <div className="print-batch-bar">
           <div className="print-batch-info">
             <span className="print-batch-count">{t('已选 {count} 项', { count: selectedIds.length })}</span>
-            <button className="print-batch-clear" onClick={() => setSelectedIds([])}>取消</button>
+            <button className="print-batch-clear" onClick={() => setSelectedIds([])}>
+              取消
+            </button>
           </div>
-          <button className="print-batch-btn" onClick={openBatch}>批量打印</button>
+          <button className="print-batch-btn" onClick={openBatch}>
+            批量打印
+          </button>
         </div>
       )}
       <BatchPrintPopup
@@ -158,7 +178,9 @@ const PrintTab = forwardRef<PrintTabHandle, Props>(function PrintTab(
         quantities={batchQuantities}
         onClose={() => setBatchOpen(false)}
         onToggle={toggleBatchMaterial}
-        onQuantityChange={(id, value) => setBatchQuantities((values) => ({ ...values, [id]: Math.min(99, Math.max(1, value)) }))}
+        onQuantityChange={(id, value) =>
+          setBatchQuantities((values) => ({ ...values, [id]: Math.min(99, Math.max(1, value)) }))
+        }
         onPrint={() => void batchPrint()}
       />
     </>
