@@ -18,7 +18,14 @@ export function labelMaterialType(material: Material | PrintMaterial) {
 }
 
 export function statusText(status: string) {
-  return ({ normal: '正常', warning: '即将过期', expired: '已过期' } as Record<string, string>)[status] || status
+  return (
+    (
+      { normal: '正常', warning: '即将过期', expired: '已过期', used: '已使用', scrapped: '已废弃' } as Record<
+        string,
+        string
+      >
+    )[status] || status
+  )
 }
 
 export function addLife(date: Date, value: number, unit: string) {

@@ -1,7 +1,7 @@
 import { Popup, Stepper } from 'antd-mobile'
 import { useMemo, useState, type ReactNode } from 'react'
 import { addLife, formatDate, statusText, unitText } from '@/materialUtils'
-import type { EntityId, Material, OpenedMaterial, PrintMaterial } from '@/types'
+import type { EntityId, OpenedMaterial, PrintMaterial } from '@/types'
 import useApiHost from 'ims-hooks/useApiHost'
 
 function FilterChips({
@@ -38,7 +38,7 @@ function MaterialPrintCard({
   onPrint: () => void
 }) {
   return (
-    <div className="item-row">
+    <div className="item-row material-row">
       <label className="row-check">
         <input type="checkbox" checked={checked} onChange={onToggle} />
       </label>
@@ -278,7 +278,12 @@ function ScrapPopup({
           <button className="btn btn-secondary" onClick={onClose}>
             取消
           </button>
-          <button className="btn btn-primary" disabled={loading} onClick={onConfirm}>
+          <button
+            className="btn btn-primary"
+            disabled={loading}
+            onClick={onConfirm}
+            style={{ opacity: loading ? 0.6 : '' }}
+          >
             {loading ? '处理中…' : '确认废弃'}
           </button>
         </div>
@@ -336,7 +341,12 @@ function UsePopup({
           <button className="btn btn-secondary" onClick={onClose}>
             取消
           </button>
-          <button className="btn btn-primary" disabled={loading} onClick={onConfirm}>
+          <button
+            className="btn btn-primary"
+            disabled={loading}
+            onClick={onConfirm}
+            style={{ opacity: loading ? 0.6 : '' }}
+          >
             {loading ? '处理中…' : '确认使用'}
           </button>
         </div>
@@ -348,6 +358,7 @@ function UsePopup({
 function BatchOperationPopup({
   visible,
   action,
+  loading,
   items,
   quantities,
   onQuantityChange,
@@ -356,6 +367,7 @@ function BatchOperationPopup({
 }: {
   visible: boolean
   action: 'use' | 'scrap'
+  loading: boolean
   items: OpenedMaterial[]
   quantities: Record<EntityId, string>
   onQuantityChange: (id: EntityId, value: string) => void
@@ -404,7 +416,12 @@ function BatchOperationPopup({
           <button className="btn btn-secondary" onClick={onClose}>
             取消
           </button>
-          <button className="btn btn-primary" onClick={onConfirm}>
+          <button
+            className="btn btn-primary"
+            disabled={loading}
+            onClick={onConfirm}
+            style={{ opacity: loading ? 0.6 : '' }}
+          >
             {confirmText}
           </button>
         </div>
@@ -424,6 +441,7 @@ function OpenedCard({
   onScrap: (item: OpenedMaterial) => void
   onReprint: (item: OpenedMaterial) => void
 }) {
+  const finished = item.sourceStatus === 4 || item.sourceStatus === 5
   return (
     <div className="item-row warning-row">
       <div className="item-info">
@@ -439,17 +457,17 @@ function OpenedCard({
         <div className="row-actions">
           <button
             className="mini-btn mini-btn-use"
-            disabled={item.computedStatus === 'expired'}
+            disabled={item.computedStatus === 'expired' || finished}
             onClick={() => onUse(item)}
           >
             使用
           </button>
-          <button className="mini-btn mini-btn-scrap" onClick={() => onScrap(item)}>
+          <button className="mini-btn mini-btn-scrap" disabled={finished} onClick={() => onScrap(item)}>
             废弃
           </button>
           <button
             className="mini-btn mini-btn-reprint"
-            disabled={item.computedStatus === 'expired'}
+            disabled={item.computedStatus === 'expired' || finished}
             onClick={() => onReprint(item)}
           >
             补打
@@ -475,10 +493,11 @@ function OpenedOperationCard({
   onScrap: (item: OpenedMaterial) => void
   onReprint: (item: OpenedMaterial) => void
 }) {
+  const finished = item.sourceStatus === 4 || item.sourceStatus === 5
   return (
     <div className="material-card">
       <div className="material-card-check">
-        <input type="checkbox" checked={checked} onChange={onToggle} />
+        <input type="checkbox" checked={checked} disabled={finished} onChange={onToggle} />
       </div>
       <div className="material-card-content">
         <div className="material-card-header">
@@ -496,17 +515,17 @@ function OpenedOperationCard({
         <div className="row-actions">
           <button
             className="mini-btn mini-btn-use"
-            disabled={item.computedStatus === 'expired'}
+            disabled={item.computedStatus === 'expired' || finished}
             onClick={() => onUse(item)}
           >
             使用
           </button>
-          <button className="mini-btn mini-btn-scrap" onClick={() => onScrap(item)}>
+          <button className="mini-btn mini-btn-scrap" disabled={finished} onClick={() => onScrap(item)}>
             废弃
           </button>
           <button
             className="mini-btn mini-btn-reprint"
-            disabled={item.computedStatus === 'expired'}
+            disabled={item.computedStatus === 'expired' || finished}
             onClick={() => onReprint(item)}
           >
             补打

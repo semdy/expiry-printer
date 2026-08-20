@@ -44,6 +44,7 @@ export type MaterialCategory = {
 
 export type OpenedMaterial = {
   id: EntityId
+  sourceStatus?: number
   openedAt: string
   expiresAt: string
   computedStatus: string

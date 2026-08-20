@@ -23,7 +23,7 @@ select {
 
 .mobile-shell {
   min-height: 100vh;
-  padding-bottom: 72px;
+  padding-bottom: 62px;
   background: #f5f5fa;
 }
 
@@ -280,8 +280,7 @@ select {
 }
 
 .load-more-status {
-  min-height: 42px;
-  padding: 13px 0 4px;
+  padding: 6px 0;
   color: #86909c;
   font-size: 12px;
   text-align: center;
@@ -295,7 +294,7 @@ select {
   border-bottom: 1px solid #f0f0f5;
 }
 
-.item-row:last-child {
+.material-row:last-child {
   border-bottom: 0;
 }
 
@@ -567,6 +566,16 @@ input[type='checkbox'] {
   background: #feecea;
 }
 
+.status-used {
+  color: #1677ff;
+  background: #e8f3ff;
+}
+
+.status-scrapped {
+  color: #6b7785;
+  background: #f2f3f5;
+}
+
 .text-danger {
   color: #d93026;
 }
@@ -579,10 +588,6 @@ input[type='checkbox'] {
   background: #fff;
   border: 1px solid #eaeaf0;
   border-radius: 8px;
-}
-
-.warning-row:last-child {
-  margin-bottom: 0;
 }
 
 .row-actions {

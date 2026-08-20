@@ -19,6 +19,9 @@ const warningActionApi: OpenedMaterialActionApi = {
   reprint: (openedMaterialId) => reprintLabelApi({ openedMaterialId })
 }
 
+// 分类筛选暂不展示，保留相关状态和 UI，后续需要时可直接开启。
+const categoryFilterVisible = false
+
 export default function WarningTab({ printer, showNotice, requestConfirm }: Props) {
   const {
     items,
@@ -27,7 +30,6 @@ export default function WarningTab({ printer, showNotice, requestConfirm }: Prop
     loading,
     loadingMore,
     page,
-    total,
     hasMore,
     keyword,
     categoryId,
@@ -53,14 +55,20 @@ export default function WarningTab({ printer, showNotice, requestConfirm }: Prop
   const previousKeyword = useRef(keyword)
   const categoryIds = useMemo(() => ['all', ...categories.map((item) => item.id)], [categories])
   const categoryLabels = useMemo(() => Object.fromEntries(categories.map((item) => [item.id, item.name])), [categories])
+  const warningCount = useMemo(() => items.filter((item) => item.sourceStatus === 2).length, [items])
+  const expiredCount = useMemo(() => items.filter((item) => item.sourceStatus === 3).length, [items])
+  const filteredItems = useMemo(
+    () => (status === 'all' ? items : items.filter((item) => item.sourceStatus === (status === 'warning' ? 2 : 3))),
+    [items, status]
+  )
 
   useEffect(() => {
-    void loadCategories()
+    if (categoryFilterVisible) void loadCategories()
   }, [loadCategories])
 
   useEffect(() => {
     void refresh()
-  }, [categoryId, status, organizations, refresh])
+  }, [categoryId, organizations, refresh])
 
   useEffect(() => {
     if (previousKeyword.current === keyword) return
@@ -87,20 +95,34 @@ export default function WarningTab({ printer, showNotice, requestConfirm }: Prop
         <SearchBar value={keyword} onChange={setKeyword} placeholder="搜索物料名称/编码" />
         <OrganizationPicker value={organizations} onChange={setOrganizations} />
       </div>
-      <FilterChips items={categoryIds} labels={categoryLabels} value={categoryId} onChange={setCategoryId} />
+      {categoryFilterVisible && (
+        <FilterChips items={categoryIds} labels={categoryLabels} value={categoryId} onChange={setCategoryId} />
+      )}
       <FilterChips
         items={['all', 'warning', 'expired']}
-        labels={{ all: '全部', warning: '即将过期', expired: '已过期' }}
+        labels={{
+          all: '全部',
+          warning: (
+            <span className="warning-filter-label">
+              即将过期<span className="warning-filter-badge">{warningCount}</span>
+            </span>
+          ),
+          expired: (
+            <span className="warning-filter-label">
+              已过期<span className="warning-filter-badge">{expiredCount}</span>
+            </span>
+          )
+        }}
         value={status}
         onChange={setStatus}
       />
       <section className="card">
         <div className="card-title">
           <span>预警列表</span>
-          <span className="card-count">共 {total} 条</span>
+          <span className="card-count">共 {filteredItems.length} 条</span>
         </div>
         <div className="item-list">
-          {items.map((item) => (
+          {filteredItems.map((item) => (
             <OpenedCard
               key={item.id}
               item={item}
@@ -110,7 +132,7 @@ export default function WarningTab({ printer, showNotice, requestConfirm }: Prop
             />
           ))}
         </div>
-        {loaded && !loading && items.length === 0 && <ErrorBlock status="empty" />}
+        {loaded && !loading && filteredItems.length === 0 && <ErrorBlock status="empty" />}
       </section>
       <div ref={loadMoreRef} className="load-more-status">
         {loading || loadingMore
@@ -119,7 +141,9 @@ export default function WarningTab({ printer, showNotice, requestConfirm }: Prop
             ? '继续上滑加载更多'
             : loaded && items.length > 0 && page > 1
               ? '没有更多了'
-              : ''}
+              : loaded && items.length === 0
+                ? '暂无数据'
+                : ''}
       </div>
       {actions.popups}
     </>

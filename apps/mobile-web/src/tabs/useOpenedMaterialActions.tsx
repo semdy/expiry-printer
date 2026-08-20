@@ -49,6 +49,10 @@ export function useOpenedMaterialActions({
   }
 
   function openUse(item: OpenedMaterial) {
+    if (item.sourceStatus === 4 || item.sourceStatus === 5) {
+      showNotice('该物料已完成操作', 'warning')
+      return
+    }
     if (item.computedStatus === 'expired') {
       showNotice('已过期物料不能使用，仅可废弃', 'warning')
       return
@@ -92,6 +96,10 @@ export function useOpenedMaterialActions({
   }
 
   function openScrap(item: OpenedMaterial) {
+    if (item.sourceStatus === 4 || item.sourceStatus === 5) {
+      showNotice('该物料已完成操作', 'warning')
+      return
+    }
     setCurrent(item)
     setScrapQuantity('1')
     setScrapRemark('')
@@ -133,6 +141,10 @@ export function useOpenedMaterialActions({
 
   async function reprint(item: OpenedMaterial) {
     if (submittingRef.current) return
+    if (item.sourceStatus === 4 || item.sourceStatus === 5) {
+      showNotice('该物料已完成操作', 'warning')
+      return
+    }
     if (item.computedStatus === 'expired') {
       showNotice('已过期物料不能补打标签，仅可废弃', 'warning')
       return
@@ -170,6 +182,10 @@ export function useOpenedMaterialActions({
       showNotice('请先选择物料', 'warning')
       return
     }
+    if (rows.some((item) => item.sourceStatus === 4 || item.sourceStatus === 5)) {
+      showNotice('已使用或已废弃物料不能重复操作', 'warning')
+      return
+    }
     if (action === 'use' && rows.some((item) => item.computedStatus === 'expired')) {
       showNotice('已过期物料不能使用，仅可废弃', 'warning')
       return
@@ -186,28 +202,33 @@ export function useOpenedMaterialActions({
       showNotice(batchAction === 'use' ? '请输入有效的使用数量' : '请输入有效的废弃数量', 'warning')
       return false
     }
-    const ok = await requestConfirm(
-      batchAction === 'use'
-        ? {
-            title: '确认批量使用',
-            content: t('确定要批量使用已选择的 {count} 个物料吗？已按填写数量执行。', { count: payload.length }),
-            confirmText: '确认使用'
-          }
-        : {
-            title: '确认批量废弃',
-            content: t('确定要批量废弃已选择的 {count} 个物料吗？已按填写数量执行。', { count: payload.length }),
-            confirmText: '确认废弃'
-          }
-    )
-    if (!ok) return false
-    if (actionApi) {
-      const items = payload.map((item) => ({ openedMaterialId: String(item.id), quantity: String(item.quantity) }))
-      if (batchAction === 'use') await actionApi.use(items)
-      else await actionApi.scrap(items, '批量废弃')
-    } else {
-      await apiSend(`/api/opened-materials/batch-${batchAction}`, 'POST', {
-        items: payload.map((item) => ({ ...item, ...(batchAction === 'scrap' ? { remark: '批量废弃' } : {}) }))
-      })
+    setActionSubmitting(true)
+    try {
+      const ok = await requestConfirm(
+        batchAction === 'use'
+          ? {
+              title: '确认批量使用',
+              content: t('确定要批量使用已选择的 {count} 个物料吗？已按填写数量执行。', { count: payload.length }),
+              confirmText: '确认使用'
+            }
+          : {
+              title: '确认批量废弃',
+              content: t('确定要批量废弃已选择的 {count} 个物料吗？已按填写数量执行。', { count: payload.length }),
+              confirmText: '确认废弃'
+            }
+      )
+      if (!ok) return false
+      if (actionApi) {
+        const items = payload.map((item) => ({ openedMaterialId: String(item.id), quantity: String(item.quantity) }))
+        if (batchAction === 'use') await actionApi.use(items)
+        else await actionApi.scrap(items, '批量废弃')
+      } else {
+        await apiSend(`/api/opened-materials/batch-${batchAction}`, 'POST', {
+          items: payload.map((item) => ({ ...item, ...(batchAction === 'scrap' ? { remark: '批量废弃' } : {}) }))
+        })
+      }
+    } finally {
+      setActionSubmitting(false)
     }
     showNotice(batchAction === 'use' ? '批量使用成功' : '批量废弃成功')
     setBatchAction(null)
@@ -222,6 +243,10 @@ export function useOpenedMaterialActions({
     const rows = items.filter((item) => selectedIds.includes(item.id))
     if (!rows.length) {
       showNotice('请先选择物料', 'warning')
+      return false
+    }
+    if (rows.some((item) => item.sourceStatus === 4 || item.sourceStatus === 5)) {
+      showNotice('已使用或已废弃物料不能补打标签', 'warning')
       return false
     }
     if (rows.some((item) => item.computedStatus === 'expired')) {
@@ -264,7 +289,7 @@ export function useOpenedMaterialActions({
         onQuantityChange={setScrapQuantity}
         onRemarkChange={setScrapRemark}
         onClose={() => setScrapOpen(false)}
-        onConfirm={() => void confirmScrap()}
+        onConfirm={confirmScrap}
       />
       <UsePopup
         visible={useOpen}
@@ -273,16 +298,17 @@ export function useOpenedMaterialActions({
         loading={submitting}
         onQuantityChange={setUseQuantity}
         onClose={() => setUseOpen(false)}
-        onConfirm={() => void confirmUse()}
+        onConfirm={confirmUse}
       />
       <BatchOperationPopup
         visible={batchAction !== null}
         action={batchAction || 'use'}
+        loading={submitting}
         items={batchItems}
         quantities={batchQuantities}
         onQuantityChange={(id, value) => setBatchQuantities((values) => ({ ...values, [id]: value }))}
         onClose={() => setBatchAction(null)}
-        onConfirm={() => void confirmBatch()}
+        onConfirm={confirmBatch}
       />
     </>
   )

@@ -4,7 +4,7 @@ import type { MaterialCategory, OpenedMaterial } from '@/types'
 import { getConfigListApi, getWarningListApi } from 'ims-data/api/expiryPrint'
 import { getHost, type IHost } from 'ims-hooks/useApiHost'
 
-const pageSize = 20
+const pageSize = 200
 
 type WarningStatus = 'all' | 'warning' | 'expired'
 
@@ -19,7 +19,7 @@ type WarningListItem = {
   unitName: string
   openedAt: string
   expiresAt: string
-  status: number
+  status: number // 1正常 2预警 3过期4已使用5已废弃
   statusName: string
   quantity: string
   remainingSeconds: string
@@ -90,6 +90,7 @@ function formatRemainingTime(secondsValue: string, status: number) {
 function normalizeItems(list: WarningListItem[]): OpenedMaterial[] {
   return list.map((item) => ({
     id: String(item.id ?? ''),
+    sourceStatus: item.status,
     openedAt: toIsoTime(item.openedAt),
     expiresAt: toIsoTime(item.expiresAt),
     computedStatus: item.status === 3 ? 'expired' : item.status === 2 ? 'warning' : 'normal',
@@ -116,16 +117,7 @@ function mergeItems(current: OpenedMaterial[], incoming: OpenedMaterial[]) {
   return Array.from(itemMap.values())
 }
 
-function statusValue(status: WarningStatus) {
-  if (status === 'warning') return 2
-  if (status === 'expired') return 3
-  return 0
-}
-
-async function requestPage(
-  page: number,
-  state: Pick<WarningTabState, 'categoryId' | 'keyword' | 'organizations' | 'status'>
-) {
+async function requestPage(page: number, state: Pick<WarningTabState, 'categoryId' | 'keyword' | 'organizations'>) {
   const hostInfo = await getHostInfo()
   const selectedOrganization = state.organizations[0]
   const requestData = {
@@ -134,8 +126,7 @@ async function requestPage(
     shopId: selectedOrganization?.shopId || hostInfo.shopInfo.shopId,
     departmentId: selectedOrganization?.departmentId || '0',
     keyword: state.keyword.trim() || undefined,
-    categoryId: state.categoryId === 'all' ? undefined : state.categoryId,
-    status: statusValue(state.status)
+    categoryId: state.categoryId === 'all' ? undefined : state.categoryId
   }
   const requestKey = JSON.stringify(requestData)
   const pendingRequest = pageRequests.get(requestKey)
@@ -221,8 +212,7 @@ export const useWarningTabStore = create<WarningTabState>()((set, get) => ({
     set({ categoryId, items: [], page: 0, total: 0, hasMore: true, loadingMore: false })
   },
   setStatus: (status) => {
-    requestVersion += 1
-    set({ status: status as WarningStatus, items: [], page: 0, total: 0, hasMore: true, loadingMore: false })
+    set({ status: status as WarningStatus })
   },
   setOrganizations: (organizations) => {
     requestVersion += 1
